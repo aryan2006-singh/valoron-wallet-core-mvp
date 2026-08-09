@@ -236,3 +236,22 @@ live balance/transaction updates via Supabase Realtime.
   caching strategy, queueing for write-heavy paths, autoscaling
   configuration, and load testing to validate 10k baseline / 20k burst
   concurrent users.
+
+## 12. Addendum (added during implementation planning)
+
+Section 5 describes "exactly three" money-movement RPC functions. While
+turning this spec into an implementation plan, that split further into
+seven `SECURITY DEFINER` functions — `transfer_funds`, `record_deposit`,
+`record_withdrawal`, `confirm_withdrawal`, `reverse_withdrawal`,
+`request_kyc_verification`, and `find_recipient_account` — because §6's
+own description of the withdrawal flow ("webhook confirms completion, or
+on failure a reversal ledger entry is written") needs separate
+confirm/reverse functions with different privilege levels (user-callable
+for a self-cancel, service-role-callable for an async webhook outcome),
+and KYC/recipient-lookup needed their own narrow, non-ledger-writing
+functions rather than overloading the three. The governing principle —
+**no code path outside these `SECURITY DEFINER` functions may write to
+`ledger_entries` or `transactions`, ever** — is unchanged and, if
+anything, more tightly enforced by the split. See
+`docs/superpowers/plans/2026-08-09-valoron-wallet-core-mvp.md` (Tasks 5,
+6, 11, 14) for the exact function signatures.
