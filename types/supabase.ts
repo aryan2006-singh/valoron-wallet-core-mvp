@@ -232,7 +232,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      transfer_funds: {
+        Args: {
+          p_amount_cents: number
+          p_idempotency_key: string
+          p_recipient_account_id: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
