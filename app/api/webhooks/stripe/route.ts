@@ -20,6 +20,20 @@ async function handleIdentityRequiresInput(admin: ReturnType<typeof createAdminC
   await admin.from('profiles').update({ kyc_status: 'rejected' }).eq('id', userId)
 }
 
+async function handleDepositSucceeded(admin: ReturnType<typeof createAdminClient>, event: Stripe.Event) {
+  const paymentIntent = event.data.object as Stripe.PaymentIntent
+  const accountId = paymentIntent.metadata?.account_id
+  const idempotencyKey = paymentIntent.metadata?.idempotency_key
+  if (!accountId || !idempotencyKey) return
+
+  await admin.rpc('record_deposit', {
+    p_account_id: accountId,
+    p_amount_cents: paymentIntent.amount,
+    p_stripe_reference: paymentIntent.id,
+    p_idempotency_key: idempotencyKey,
+  })
+}
+
 export async function POST(request: Request) {
   const body = await request.text()
   const signature = request.headers.get('stripe-signature')
@@ -62,8 +76,10 @@ export async function POST(request: Request) {
       case 'identity.verification_session.requires_input':
         await handleIdentityRequiresInput(admin, event)
         break
-      // Tasks 12-13 add cases here: payment_intent.succeeded, payout.paid,
-      // payout.failed.
+      case 'payment_intent.succeeded':
+        await handleDepositSucceeded(admin, event)
+        break
+      // Task 13 adds cases here: payout.paid, payout.failed.
       default:
         break
     }
