@@ -50,7 +50,7 @@ export async function createVerifiedUser(emailPrefix: string) {
  * will do once it exists — do not use this pattern outside tests.
  */
 export async function fundAccount(accountId: string, amountCents: number) {
-  const { data: txn } = await admin
+  const { data: txn, error: txnError } = await admin
     .from('transactions')
     .insert({
       type: 'deposit',
@@ -59,12 +59,14 @@ export async function fundAccount(accountId: string, amountCents: number) {
     })
     .select()
     .single()
+  if (txnError) throw txnError
 
-  await admin.from('ledger_entries').insert({
+  const { error: entryError } = await admin.from('ledger_entries').insert({
     account_id: accountId,
     transaction_id: txn!.id,
     amount_cents: amountCents,
     direction: 'credit',
     balance_after_cents: amountCents,
   })
+  if (entryError) throw entryError
 }

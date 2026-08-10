@@ -67,6 +67,79 @@ describe('transfer_funds RPC', () => {
     expect(entries?.[0].balance_after_cents).toBe(3000)
   })
 
+  it('rejects replaying an idempotency key that belongs to a different sender', async () => {
+    const senderA = await createVerifiedUser('senderA')
+    const senderB = await createVerifiedUser('senderB')
+    const recipient = await createVerifiedUser('recipient')
+    await fundAccount(senderA.accountId, 5000)
+    await fundAccount(senderB.accountId, 5000)
+    const key = `shared-key-${Date.now()}`
+
+    const { data: first, error: firstError } = await senderA.client.rpc('transfer_funds', {
+      p_recipient_account_id: recipient.accountId,
+      p_amount_cents: 1000,
+      p_idempotency_key: key,
+    })
+    expect(firstError).toBeNull()
+    expect(first.status).toBe('completed')
+
+    const { data: second, error: secondError } = await senderB.client.rpc('transfer_funds', {
+      p_recipient_account_id: recipient.accountId,
+      p_amount_cents: 1000,
+      p_idempotency_key: key,
+    })
+    expect(second).toBeNull()
+    expect(secondError).not.toBeNull()
+    expect(secondError!.message).toMatch(/idempotency key already used/i)
+
+    // senderB's balance must be untouched — the collision was rejected,
+    // not silently treated as senderB's own successful transfer.
+    const { data: entries } = await senderB.client
+      .from('ledger_entries')
+      .select('balance_after_cents')
+      .eq('account_id', senderB.accountId)
+      .order('id', { ascending: false })
+      .limit(1)
+    expect(entries?.[0].balance_after_cents).toBe(5000)
+  })
+
+  it('recovers cleanly when two truly concurrent calls race on the same idempotency key', async () => {
+    const sender = await createVerifiedUser('sender')
+    const recipient = await createVerifiedUser('recipient')
+    await fundAccount(sender.accountId, 5000)
+    const key = `race-${Date.now()}`
+
+    const [resultA, resultB] = await Promise.all([
+      sender.client.rpc('transfer_funds', {
+        p_recipient_account_id: recipient.accountId,
+        p_amount_cents: 2000,
+        p_idempotency_key: key,
+      }),
+      sender.client.rpc('transfer_funds', {
+        p_recipient_account_id: recipient.accountId,
+        p_amount_cents: 2000,
+        p_idempotency_key: key,
+      }),
+    ])
+
+    // Neither call should surface a raw unique-constraint error: both
+    // succeed, one as the real transfer and one as the idempotent replay,
+    // both pointing at the same transaction.
+    expect(resultA.error).toBeNull()
+    expect(resultB.error).toBeNull()
+    const statuses = [resultA.data.status, resultB.data.status].sort()
+    expect(statuses).toEqual(['already_processed', 'completed'])
+    expect(resultA.data.transaction_id).toBe(resultB.data.transaction_id)
+
+    const { data: entries } = await sender.client
+      .from('ledger_entries')
+      .select('balance_after_cents')
+      .eq('account_id', sender.accountId)
+      .order('id', { ascending: false })
+      .limit(1)
+    expect(entries?.[0].balance_after_cents).toBe(3000)
+  })
+
   it('handles two concurrent transfers from the same account without overdrawing it', async () => {
     const sender = await createVerifiedUser('sender')
     const recipientA = await createVerifiedUser('recipientA')
