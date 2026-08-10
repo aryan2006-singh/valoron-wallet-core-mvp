@@ -4,7 +4,13 @@ import * as Sentry from '@sentry/nextjs'
 
 function createRateLimiter(prefix: string, limit: number, window: `${number} ${'s' | 'm' | 'h'}`) {
   return new Ratelimit({
-    redis: Redis.fromEnv(),
+    // `retry: false` disables the client's default 5-attempt exponential
+    // backoff (~4.3s total) on network errors. enforceRateLimit below
+    // already fails open on any error, so retrying is pure added latency
+    // on every rate-limited request whenever Redis is unreachable — an
+    // outage, or (as in local dev) an unconfigured Upstash env var — with
+    // no corresponding benefit.
+    redis: Redis.fromEnv({ retry: false }),
     limiter: Ratelimit.slidingWindow(limit, window),
     prefix: `ratelimit:${prefix}`,
   })

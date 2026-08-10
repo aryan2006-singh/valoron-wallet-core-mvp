@@ -32,6 +32,29 @@ export function DashboardClient({
 
   useEffect(() => {
     const supabase = createClient()
+
+    // Shared by the live event handler below and the post-subscribe
+    // catch-up fetch, so both stay in sync with the same query/mapping.
+    async function refetchTransactions() {
+      const { data } = await supabase
+        .from('transactions')
+        .select('id, type, status, created_at, ledger_entries!inner(amount_cents, direction, account_id)')
+        .eq('ledger_entries.account_id', accountId)
+        .order('created_at', { ascending: false })
+        .limit(20)
+      if (!data) return
+      setTransactions(
+        (data as unknown as TxnJoinRow[]).map((t) => ({
+          id: t.id,
+          type: t.type,
+          status: t.status,
+          createdAt: t.created_at,
+          amountCents: t.ledger_entries[0].amount_cents,
+          direction: t.ledger_entries[0].direction,
+        }))
+      )
+    }
+
     const channel = supabase
       .channel(`account-${accountId}`)
       .on(
@@ -43,28 +66,32 @@ export function DashboardClient({
           // Refetching the list on each event keeps this simple and
           // correct at this MVP's scale; the Scaling spec revisits
           // whether that still holds at 10k-20k concurrent users.
-          supabase
-            .from('transactions')
-            .select('id, type, status, created_at, ledger_entries!inner(amount_cents, direction, account_id)')
-            .eq('ledger_entries.account_id', accountId)
-            .order('created_at', { ascending: false })
-            .limit(20)
-            .then(({ data }) => {
-              if (!data) return
-              setTransactions(
-                (data as unknown as TxnJoinRow[]).map((t) => ({
-                  id: t.id,
-                  type: t.type,
-                  status: t.status,
-                  createdAt: t.created_at,
-                  amountCents: t.ledger_entries[0].amount_cents,
-                  direction: t.ledger_entries[0].direction,
-                }))
-              )
-            })
+          refetchTransactions()
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        // Realtime only delivers events that happen after the channel has
+        // joined. A ledger write that lands between this page's
+        // server-rendered snapshot and this callback — e.g. navigating
+        // here right after the send-money page's optimistic "Sent!"
+        // confirmation, before its transfer has actually committed —
+        // would otherwise never self-correct on this page load. One
+        // snapshot refetch right after joining closes that gap; the
+        // subscription above keeps things live from here on.
+        if (status === 'SUBSCRIBED') {
+          supabase
+            .from('ledger_entries')
+            .select('balance_after_cents')
+            .eq('account_id', accountId)
+            .order('id', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+            .then(({ data }) => {
+              if (data) setBalanceCents(data.balance_after_cents)
+            })
+          refetchTransactions()
+        }
+      })
 
     return () => {
       supabase.removeChannel(channel)
