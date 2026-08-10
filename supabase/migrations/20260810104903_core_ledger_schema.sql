@@ -81,6 +81,26 @@ create policy "transactions_select_own" on public.transactions
     )
   );
 
+-- Explicit base grants: Postgres checks table-level GRANTs before it ever
+-- evaluates row-level security, and Supabase's Data API roles (anon,
+-- authenticated, service_role) get NO privileges on new public-schema
+-- tables by default (this is true locally and on hosted projects alike —
+-- there is no "auto-expose" happening here). Without these grants, RLS
+-- policies above would never even run: every request would fail with
+-- "permission denied" instead of being row-filtered by policy. anon and
+-- authenticated get SELECT only; RLS then restricts *rows*. service_role
+-- gets SELECT too (it has BYPASSRLS but is not superuser, so it is still
+-- subject to base table grants like any other role).
+grant select on public.profiles to anon, authenticated, service_role;
+grant select on public.accounts to anon, authenticated, service_role;
+grant select on public.transactions to anon, authenticated, service_role;
+grant select on public.ledger_entries to anon, authenticated, service_role;
+
+-- service_role is the only role allowed to change kyc_status directly
+-- (see the column-level grant comment above), mirroring the "service role
+-- (webhook)" write path already documented there.
+grant update (kyc_status) on public.profiles to service_role;
+
 -- Defense in depth: no INSERT/UPDATE/DELETE policies exist above for
 -- ledger_entries/transactions/accounts, but explicitly revoke the grants
 -- too, so a future accidental permissive policy still can't be exploited
