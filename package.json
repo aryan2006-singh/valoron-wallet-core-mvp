@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
+    "@hookform/resolvers": "^5.7.1",
     "@sentry/nextjs": "^10.69.0",
     "@stripe/stripe-js": "^9.13.0",
     "@supabase/ssr": "^0.12.4",
@@ -26,6 +27,7 @@
     "pino": "^10.3.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "react-hook-form": "^7.85.0",
     "shadcn": "^4.16.2",
     "stripe": "^22.4.0",
     "tailwind-merge": "^3.6.0",
