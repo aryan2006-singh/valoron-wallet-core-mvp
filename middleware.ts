@@ -23,7 +23,17 @@ export async function middleware(request: NextRequest) {
 
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser()
+
+  // TEMP DIAGNOSTIC — remove once the post-login navigation issue is confirmed fixed.
+  console.log(
+    '[mw-debug]',
+    request.nextUrl.pathname,
+    'user=', user?.id ?? 'none',
+    'userError=', userError?.message ?? 'none',
+    'cookieNames=', request.cookies.getAll().map((c) => c.name).join(',')
+  )
 
   // "/" has no page content of its own — it only ever routes to the
   // signed-in dashboard or the signed-out login screen.
