@@ -6,6 +6,20 @@ import { logger } from '@/lib/logger'
 import type Stripe from 'stripe'
 import type { Json } from '@/types/supabase'
 
+async function handleIdentityVerified(admin: ReturnType<typeof createAdminClient>, event: Stripe.Event) {
+  const session = event.data.object as Stripe.Identity.VerificationSession
+  const userId = session.metadata?.user_id
+  if (!userId) return
+  await admin.from('profiles').update({ kyc_status: 'verified' }).eq('id', userId)
+}
+
+async function handleIdentityRequiresInput(admin: ReturnType<typeof createAdminClient>, event: Stripe.Event) {
+  const session = event.data.object as Stripe.Identity.VerificationSession
+  const userId = session.metadata?.user_id
+  if (!userId) return
+  await admin.from('profiles').update({ kyc_status: 'rejected' }).eq('id', userId)
+}
+
 export async function POST(request: Request) {
   const body = await request.text()
   const signature = request.headers.get('stripe-signature')
@@ -42,8 +56,14 @@ export async function POST(request: Request) {
 
   try {
     switch (event.type) {
-      // Tasks 11-13 add cases here: identity.verification_session.*,
-      // payment_intent.succeeded, payout.paid, payout.failed.
+      case 'identity.verification_session.verified':
+        await handleIdentityVerified(admin, event)
+        break
+      case 'identity.verification_session.requires_input':
+        await handleIdentityRequiresInput(admin, event)
+        break
+      // Tasks 12-13 add cases here: payment_intent.succeeded, payout.paid,
+      // payout.failed.
       default:
         break
     }

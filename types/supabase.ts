@@ -249,6 +249,7 @@ export type Database = {
         Args: { p_amount_cents: number; p_idempotency_key: string }
         Returns: Json
       }
+      request_kyc_verification: { Args: never; Returns: Json }
       reverse_withdrawal: {
         Args: { p_reason: string; p_transaction_id: string }
         Returns: Json
