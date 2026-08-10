@@ -236,6 +236,7 @@ export type Database = {
         Args: { p_stripe_reference: string; p_transaction_id: string }
         Returns: Json
       }
+      find_recipient_account: { Args: { p_email: string }; Returns: string }
       record_deposit: {
         Args: {
           p_account_id: string
