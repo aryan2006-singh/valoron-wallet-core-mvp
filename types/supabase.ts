@@ -232,6 +232,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      confirm_withdrawal: {
+        Args: { p_stripe_reference: string; p_transaction_id: string }
+        Returns: Json
+      }
+      record_deposit: {
+        Args: {
+          p_account_id: string
+          p_amount_cents: number
+          p_idempotency_key: string
+          p_stripe_reference: string
+        }
+        Returns: Json
+      }
+      record_withdrawal: {
+        Args: { p_amount_cents: number; p_idempotency_key: string }
+        Returns: Json
+      }
+      reverse_withdrawal: {
+        Args: { p_reason: string; p_transaction_id: string }
+        Returns: Json
+      }
       transfer_funds: {
         Args: {
           p_amount_cents: number
