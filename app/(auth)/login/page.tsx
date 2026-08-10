@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -14,6 +15,7 @@ const loginSchema = z.object({ email: z.string().email(), password: z.string().m
 type LoginInput = z.infer<typeof loginSchema>
 
 export default function LoginPage() {
+  const router = useRouter()
   const [serverError, setServerError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const form = useForm<LoginInput>({ resolver: zodResolver(loginSchema), defaultValues: { email: '', password: '' } })
@@ -25,7 +27,12 @@ export default function LoginPage() {
     formData.set('password', values.password)
     startTransition(async () => {
       const result = await logInAction(formData)
-      if (result?.error) setServerError(result.error)
+      if ('error' in result) {
+        setServerError(result.error)
+        return
+      }
+      router.push(result.redirectTo)
+      router.refresh()
     })
   }
 

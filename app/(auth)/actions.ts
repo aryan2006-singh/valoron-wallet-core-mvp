@@ -2,14 +2,18 @@
 
 import { z } from 'zod'
 import { headers } from 'next/headers'
-import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { signUpSchema } from '@/lib/validation/auth'
 import { loginRateLimit, enforceRateLimit } from '@/lib/rate-limit'
 
 const loginSchema = z.object({ email: z.string().email(), password: z.string().min(1) })
 
-export async function signUpAction(formData: FormData): Promise<{ error: string } | void> {
+// These actions are invoked as plain async calls from client components
+// (`await signUpAction(formData)` inside startTransition), not via a native
+// `<form action={fn}>`. redirect()'s client-side navigation on that call
+// path isn't reliable, so callers navigate themselves off an explicit
+// { redirectTo } result instead of relying on redirect() to throw through.
+export async function signUpAction(formData: FormData): Promise<{ error: string } | { redirectTo: string }> {
   const parsed = signUpSchema.safeParse({
     email: formData.get('email'),
     password: formData.get('password'),
@@ -25,10 +29,10 @@ export async function signUpAction(formData: FormData): Promise<{ error: string 
   })
   if (error) return { error: error.message }
 
-  redirect('/mfa')
+  return { redirectTo: '/mfa' }
 }
 
-export async function logInAction(formData: FormData): Promise<{ error: string } | void> {
+export async function logInAction(formData: FormData): Promise<{ error: string } | { redirectTo: string }> {
   const parsed = loginSchema.safeParse({
     email: formData.get('email'),
     password: formData.get('password'),
@@ -43,5 +47,5 @@ export async function logInAction(formData: FormData): Promise<{ error: string }
   const { error } = await supabase.auth.signInWithPassword(parsed.data)
   if (error) return { error: 'Invalid email or password' }
 
-  redirect('/dashboard')
+  return { redirectTo: '/dashboard' }
 }

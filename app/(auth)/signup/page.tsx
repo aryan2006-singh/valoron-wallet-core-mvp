@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { signUpSchema, type SignUpInput } from '@/lib/validation/auth'
@@ -11,6 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default function SignUpPage() {
+  const router = useRouter()
   const [serverError, setServerError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const form = useForm<SignUpInput>({
@@ -26,7 +28,12 @@ export default function SignUpPage() {
     formData.set('fullName', values.fullName)
     startTransition(async () => {
       const result = await signUpAction(formData)
-      if (result?.error) setServerError(result.error)
+      if ('error' in result) {
+        setServerError(result.error)
+        return
+      }
+      router.push(result.redirectTo)
+      router.refresh()
     })
   }
 
