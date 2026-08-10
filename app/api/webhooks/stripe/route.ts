@@ -34,6 +34,20 @@ async function handleDepositSucceeded(admin: ReturnType<typeof createAdminClient
   })
 }
 
+async function handlePayoutPaid(admin: ReturnType<typeof createAdminClient>, event: Stripe.Event) {
+  const payout = event.data.object as Stripe.Payout
+  const transactionId = payout.metadata?.transaction_id
+  if (!transactionId) return
+  await admin.rpc('confirm_withdrawal', { p_transaction_id: transactionId, p_stripe_reference: payout.id })
+}
+
+async function handlePayoutFailed(admin: ReturnType<typeof createAdminClient>, event: Stripe.Event) {
+  const payout = event.data.object as Stripe.Payout
+  const transactionId = payout.metadata?.transaction_id
+  if (!transactionId) return
+  await admin.rpc('reverse_withdrawal', { p_transaction_id: transactionId, p_reason: 'stripe_payout_failed' })
+}
+
 export async function POST(request: Request) {
   const body = await request.text()
   const signature = request.headers.get('stripe-signature')
@@ -79,7 +93,12 @@ export async function POST(request: Request) {
       case 'payment_intent.succeeded':
         await handleDepositSucceeded(admin, event)
         break
-      // Task 13 adds cases here: payout.paid, payout.failed.
+      case 'payout.paid':
+        await handlePayoutPaid(admin, event)
+        break
+      case 'payout.failed':
+        await handlePayoutFailed(admin, event)
+        break
       default:
         break
     }
