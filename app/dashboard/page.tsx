@@ -25,7 +25,7 @@ export default async function DashboardPage() {
 
   const { data: latestEntry } = await supabase
     .from('ledger_entries')
-    .select('balance_after_cents')
+    .select('id, balance_after_cents')
     .eq('account_id', account.id)
     .order('id', { ascending: false })
     .limit(1)
@@ -51,6 +51,7 @@ export default async function DashboardPage() {
     <DashboardClient
       accountId={account.id}
       initialBalanceCents={latestEntry?.balance_after_cents ?? 0}
+      initialLedgerEntryId={latestEntry?.id ?? 0}
       initialTransactions={transactions}
     />
   )
