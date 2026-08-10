@@ -1,11 +1,24 @@
 -- record_deposit: service_role-only, called exclusively by the trusted
--- Stripe webhook handler (Task 12) on payment_intent.succeeded. No
--- ownership/type-binding hardening is needed here (unlike
--- record_withdrawal below): the caller is always the trusted service
--- role, never an untrusted end user, and the idempotency key is derived
--- from Stripe's own PaymentIntent id rather than a value a client
--- controls, so there is no idempotency-key-squatting threat model to
--- defend against for this function.
+-- Stripe webhook handler (Task 12) on payment_intent.succeeded. The
+-- caller itself is always trusted (never an untrusted end user), so this
+-- does NOT need record_withdrawal's full ownership check (no auth.uid()
+-- to check against — service_role has none) or its unique_violation race
+-- recovery (webhook retries handle races fine on their own, and Stripe
+-- delivers the same event id sequentially in practice). It DOES need the
+-- type-binding half of the pattern (Fix Round 1 finding, reviewer-
+-- verified live): p_idempotency_key is caller-chosen text accepted
+-- verbatim by record_withdrawal and transfer_funds too, and both of
+-- those are reachable by any `authenticated` end user. A user who learns
+-- or predicts their own future Stripe PaymentIntent id could pre-plant
+-- it as the idempotency_key of their own record_withdrawal/transfer_funds
+-- call; when the real deposit webhook later fires with that same key,
+-- record_deposit would otherwise see the bare key match and return
+-- "already_processed" without ever crediting the account — a silent lost
+-- deposit. Requiring the existing transaction to actually be a 'deposit'
+-- with a matching credit ledger_entries row on p_account_id closes that:
+-- a mismatched match now raises loudly (23505), which is the correct
+-- webhook-handler behavior (Stripe sees an error and retries/alerts
+-- rather than the deposit silently vanishing).
 create or replace function public.record_deposit(
   p_account_id uuid,
   p_amount_cents bigint,
@@ -28,7 +41,18 @@ begin
 
   select id into v_existing_transaction_id from public.transactions where idempotency_key = p_idempotency_key;
   if v_existing_transaction_id is not null then
-    return jsonb_build_object('transaction_id', v_existing_transaction_id, 'status', 'already_processed');
+    if exists (
+      select 1 from public.ledger_entries le
+      join public.transactions t on t.id = le.transaction_id
+      where le.transaction_id = v_existing_transaction_id
+        and le.account_id = p_account_id
+        and le.direction = 'credit'
+        and t.type = 'deposit'
+    ) then
+      return jsonb_build_object('transaction_id', v_existing_transaction_id, 'status', 'already_processed');
+    else
+      raise exception 'idempotency key already used for a different transaction' using errcode = '23505';
+    end if;
   end if;
 
   perform 1 from public.accounts where id = p_account_id for update;
@@ -136,18 +160,39 @@ begin
     end if;
   end if;
 
+  -- Row lock FIRST, then the KYC-cap check — Fix Round 1 finding
+  -- (reviewer-verified live): the cap check previously ran before this
+  -- lock, so N concurrent withdrawal requests on the same account each
+  -- computed v_prior_withdrawn from the pre-lock committed state and
+  -- could each independently pass "prior + this <= 10000", jointly
+  -- withdrawing far more than the $100 pre-KYC cap allows. Locking the
+  -- account row first serializes concurrent callers the same way it
+  -- already serializes the balance check below: the second caller blocks
+  -- until the first's transaction (and its withdrawal insert) commits,
+  -- then re-reads a prior-withdrawn total that includes it.
+  perform 1 from public.accounts where id = v_account_id for update;
+
   if v_kyc_status <> 'verified' then
     select coalesce(sum(le.amount_cents), 0) into v_prior_withdrawn
     from public.ledger_entries le
     join public.transactions t on t.id = le.transaction_id
-    where le.account_id = v_account_id and t.type = 'withdrawal' and t.status in ('pending', 'completed');
+    where le.account_id = v_account_id
+      and t.type = 'withdrawal'
+      and t.status in ('pending', 'completed')
+      -- Defense in depth (reviewer's Minor #6): scope the sum to debit
+      -- entries only. Every current writer only ever inserts a debit
+      -- ledger_entries row against a 'pending'/'completed' withdrawal
+      -- transaction (reverse_withdrawal's credit-back also flips the
+      -- transaction's status to 'reversed' in the same call, which the
+      -- status filter above already excludes) — but this keeps the sum
+      -- correct even if that ever changes, rather than silently
+      -- over-counting a future credit as more withdrawn.
+      and le.direction = 'debit';
 
     if v_prior_withdrawn + p_amount_cents > 10000 then
       raise exception 'kyc verification required for this withdrawal amount' using errcode = '28000';
     end if;
   end if;
-
-  perform 1 from public.accounts where id = v_account_id for update;
 
   select coalesce(sum(case when direction = 'credit' then amount_cents else -amount_cents end), 0)
   into v_balance
@@ -241,11 +286,18 @@ declare
   v_balance bigint;
   v_initiated_by uuid;
 begin
+  -- This initial SELECT resolves v_account_id/v_amount_cents/v_initiated_by
+  -- only — its `t.status = 'pending'` condition was removed (Fix Round 1,
+  -- Critical finding, reviewer-verified live): it is a plain, unlocked
+  -- read, so it is NOT a safety check against concurrent reversal. Two
+  -- (or N) truly concurrent calls on the same withdrawal could all read
+  -- "pending" here before any of them commits anything. The actual
+  -- concurrency gate is the guarded UPDATE below, after the account lock.
   select le.account_id, le.amount_cents, t.initiated_by
   into v_account_id, v_amount_cents, v_initiated_by
   from public.ledger_entries le
   join public.transactions t on t.id = le.transaction_id
-  where le.transaction_id = p_transaction_id and t.type = 'withdrawal' and t.status = 'pending'
+  where le.transaction_id = p_transaction_id and t.type = 'withdrawal'
   limit 1;
 
   if v_account_id is null then
@@ -257,11 +309,40 @@ begin
   -- failure inside the withdraw server action. A service-role call (no
   -- auth.uid(), i.e. the webhook) may reverse any pending withdrawal —
   -- this covers an async payout.failed event arriving later.
-  if auth.uid() is not null and auth.uid() <> v_initiated_by then
+  -- `is distinct from` (not `<>`) because v_initiated_by can legitimately
+  -- be NULL (a service-role-inserted withdrawal with no initiating user);
+  -- `<>` against NULL evaluates to NULL, not TRUE, so it would silently
+  -- fail to raise and let any authenticated caller reverse it (Fix
+  -- Round 1, Minor finding).
+  if auth.uid() is not null and auth.uid() is distinct from v_initiated_by then
     raise exception 'not authorized to reverse this transaction' using errcode = '42501';
   end if;
 
   perform 1 from public.accounts where id = v_account_id for update;
+
+  -- Concurrency gate (Fix Round 1, Critical finding, reviewer-verified
+  -- live): this guarded UPDATE — not the initial SELECT above — is what
+  -- makes reverse_withdrawal safe under concurrency. UPDATE takes a
+  -- row-level lock on the transactions row it targets, so N concurrent
+  -- reverse_withdrawal calls on the same p_transaction_id serialize on
+  -- it: only the first can actually flip 'pending' -> 'reversed' and
+  -- proceed to credit the account; every other caller (whether truly
+  -- concurrent, or running after the first has already fully committed)
+  -- finds 0 rows updated and raises cleanly instead of inserting a
+  -- duplicate credit. The same row-level locking also makes this safe
+  -- against a concurrent confirm_withdrawal call, which has an
+  -- equivalent guarded UPDATE on the same row — whichever of the two
+  -- commits first wins, and the other's guarded UPDATE then correctly
+  -- sees the already-changed status and raises, instead of one call
+  -- reporting the payout sent and the other crediting the money back on
+  -- top of it.
+  update public.transactions
+  set status = 'reversed', updated_at = now()
+  where id = p_transaction_id and type = 'withdrawal' and status = 'pending';
+
+  if not found then
+    raise exception 'no matching pending withdrawal transaction' using errcode = 'P0002';
+  end if;
 
   select coalesce(sum(case when direction = 'credit' then amount_cents else -amount_cents end), 0)
   into v_balance
@@ -269,8 +350,6 @@ begin
 
   insert into public.ledger_entries (account_id, transaction_id, amount_cents, direction, balance_after_cents)
   values (v_account_id, p_transaction_id, v_amount_cents, 'credit', v_balance + v_amount_cents);
-
-  update public.transactions set status = 'reversed', updated_at = now() where id = p_transaction_id;
 
   insert into public.audit_log (action, target_table, target_id, metadata)
   values ('withdrawal_reversed', 'transactions', p_transaction_id::text, jsonb_build_object('reason', p_reason));
