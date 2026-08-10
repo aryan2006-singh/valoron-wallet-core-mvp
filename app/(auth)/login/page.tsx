@@ -32,7 +32,6 @@ export default function LoginPage() {
         return
       }
       router.push(result.redirectTo)
-      router.refresh()
     })
   }
 
