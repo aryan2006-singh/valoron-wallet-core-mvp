@@ -9,6 +9,10 @@ export default defineConfig({
     globals: true,
     include: ['tests/unit/**/*.test.ts', 'tests/unit/**/*.test.tsx'],
     setupFiles: ['./tests/unit/setup.ts'],
+    env: {
+      UPSTASH_REDIS_REST_URL: 'https://example-test.upstash.io',
+      UPSTASH_REDIS_REST_TOKEN: 'test-token',
+    },
   },
   resolve: {
     alias: { '@': path.resolve(__dirname, '.') },
