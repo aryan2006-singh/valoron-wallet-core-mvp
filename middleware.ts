@@ -25,9 +25,13 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  // TEMP DIAGNOSTIC — remove once the post-login navigation issue is confirmed fixed.
+  console.log('[mw-debug]', request.method, request.nextUrl.pathname, 'user=', user?.id ?? 'none')
+
   // "/" has no page content of its own — it only ever routes to the
   // signed-in dashboard or the signed-out login screen.
   if (request.nextUrl.pathname === '/') {
+    console.log('[mw-debug] rule=root-redirect target=', user ? '/dashboard' : '/login')
     return NextResponse.redirect(new URL(user ? '/dashboard' : '/login', request.url))
   }
 
@@ -36,9 +40,11 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/api/webhooks')
 
   if (!user && !isPublic) {
+    console.log('[mw-debug] rule=no-user-not-public -> redirect /login')
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
+  console.log('[mw-debug] rule=allow')
   return response
 }
 
