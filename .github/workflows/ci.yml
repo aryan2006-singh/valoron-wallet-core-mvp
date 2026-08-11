@@ -40,6 +40,7 @@ jobs:
           version: latest
 
       - name: Start local Supabase stack (applies all migrations)
+        working-directory: apps/api
         run: supabase start
 
       - name: Write .env.local for the Next.js app and Playwright's dev server
@@ -55,7 +56,7 @@ jobs:
             echo "UPSTASH_REDIS_REST_TOKEN=$UPSTASH_REDIS_REST_TOKEN"
             echo "NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL"
             echo "NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN"
-          } >> .env.local
+          } >> apps/web/.env.local
 
       - run: npm run lint
       - run: npm run typecheck
