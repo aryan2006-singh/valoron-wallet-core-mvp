@@ -2,25 +2,29 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type * as THREE_NS from 'three'
-import { useReducedMotion } from '@/components/marketing/motion'
 import { ProductPreview } from '@/components/marketing/product-preview'
+import { createCardFaceTexture } from '@/components/marketing/card-face-texture'
 
 /**
  * Mouse-reactive 3D payment card for the hero.
  *
  * Three.js is ~600KB, so it is imported dynamically inside the effect
  * rather than at module scope: the page paints (and LCP settles) on the
- * static fallback below, and the scene swaps in afterwards. If WebGL is
- * unavailable or the visitor asked for reduced motion, the fallback is
- * simply what they keep — no blank box, no layout shift.
+ * static fallback below, and the scene swaps in afterwards. Without WebGL
+ * the fallback is simply what the visitor keeps — no blank box, no shift.
+ *
+ * This card animates for everyone, by product decision: it is an ambient
+ * looping brand visual, closer to a logo animation than to page motion.
+ * The motion that genuinely hurts people with vestibular disorders —
+ * scroll-triggered reveals, drifting backdrop orbs, magnetic buttons —
+ * still respects prefers-reduced-motion (see motion.tsx). The loop also
+ * pauses whenever the hero scrolls out of view or the tab is hidden.
  */
 export function HeroVisual() {
   const mountRef = useRef<HTMLDivElement>(null)
   const [sceneReady, setSceneReady] = useState(false)
-  const reduced = useReducedMotion()
 
   useEffect(() => {
-    if (reduced) return
     const mount = mountRef.current
     if (!mount) return
 
@@ -42,13 +46,18 @@ export function HeroVisual() {
       const height = mount.clientHeight
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
       renderer.setSize(width, height)
+      renderer.toneMapping = THREE.ACESFilmicToneMapping
+      renderer.toneMappingExposure = 1.15
       mount.appendChild(renderer.domElement)
 
       const scene = new THREE.Scene()
       const camera = new THREE.PerspectiveCamera(35, width / height, 0.1, 100)
       camera.position.set(0, 0, 6)
 
-      // --- the card -------------------------------------------------
+      const group = new THREE.Group()
+      scene.add(group)
+
+      // --- card body -------------------------------------------------
       const w = 3.4
       const h = 2.15
       const r = 0.22
@@ -63,65 +72,85 @@ export function HeroVisual() {
       shape.lineTo(-w / 2, -h / 2 + r)
       shape.quadraticCurveTo(-w / 2, -h / 2, -w / 2 + r, -h / 2)
 
-      const cardGeometry = new THREE.ExtrudeGeometry(shape, {
+      const bodyGeometry = new THREE.ExtrudeGeometry(shape, {
         depth: 0.07,
         bevelEnabled: true,
-        bevelSize: 0.018,
-        bevelThickness: 0.018,
-        bevelSegments: 4,
-        curveSegments: 32,
+        bevelSize: 0.02,
+        bevelThickness: 0.02,
+        bevelSegments: 6,
+        curveSegments: 48,
       })
-      cardGeometry.center()
+      bodyGeometry.center()
 
-      const cardMaterial = new THREE.MeshPhysicalMaterial({
-        color: 0x0b0b0c,
-        metalness: 0.86,
-        roughness: 0.24,
+      const bodyMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x121216,
+        metalness: 0.95,
+        roughness: 0.28,
         clearcoat: 1,
-        clearcoatRoughness: 0.12,
+        clearcoatRoughness: 0.1,
       })
-      const card = new THREE.Mesh(cardGeometry, cardMaterial)
-      scene.add(card)
+      const body = new THREE.Mesh(bodyGeometry, bodyMaterial)
+      group.add(body)
 
-      // Emissive stripe, reading as the card's magnetic band.
-      const stripeGeometry = new THREE.PlaneGeometry(w * 0.995, 0.34)
-      const stripeMaterial = new THREE.MeshBasicMaterial({ color: 0xf4f4f5 })
+      // --- printed front face ----------------------------------------
+      const faceTexture = createCardFaceTexture(THREE)
+      const faceGeometry = new THREE.PlaneGeometry(w * 0.99, h * 0.985)
+      const faceMaterial = new THREE.MeshPhysicalMaterial({
+        map: faceTexture,
+        metalness: 0.45,
+        roughness: 0.34,
+        clearcoat: 0.9,
+        clearcoatRoughness: 0.14,
+      })
+      const face = new THREE.Mesh(faceGeometry, faceMaterial)
+      face.position.z = 0.057
+      group.add(face)
+
+      // --- magnetic stripe on the reverse ------------------------------
+      const stripeGeometry = new THREE.PlaneGeometry(w * 0.99, 0.4)
+      const stripeMaterial = new THREE.MeshStandardMaterial({ color: 0x08080a, roughness: 0.6 })
       const stripe = new THREE.Mesh(stripeGeometry, stripeMaterial)
-      stripe.position.set(0, 0.42, 0.055)
-      card.add(stripe)
+      stripe.position.set(0, 0.5, -0.057)
+      stripe.rotation.y = Math.PI
+      group.add(stripe)
 
-      // --- lighting -------------------------------------------------
-      scene.add(new THREE.AmbientLight(0xffffff, 0.55))
-      const key = new THREE.DirectionalLight(0xffffff, 2.4)
+      // --- lighting ----------------------------------------------------
+      scene.add(new THREE.AmbientLight(0xffffff, 0.5))
+      const key = new THREE.DirectionalLight(0xffffff, 2.6)
       key.position.set(-3, 4, 5)
       scene.add(key)
-      const rim = new THREE.PointLight(0xffffff, 22, 18)
-      rim.position.set(4, -2, 3)
-      scene.add(rim)
-      const fill = new THREE.PointLight(0x9ca3af, 14, 18)
-      fill.position.set(-4, -3, 2)
-      scene.add(fill)
+      // Two tinted rim lights: the colour only ever lands on the metal
+      // edges, which is what sells "premium card" instead of "grey box".
+      const rimCool = new THREE.PointLight(0x8ab4ff, 40, 22)
+      rimCool.position.set(4.5, -1.5, 2.5)
+      scene.add(rimCool)
+      const rimWarm = new THREE.PointLight(0xffd9a8, 30, 22)
+      rimWarm.position.set(-4.5, -3, 2)
+      scene.add(rimWarm)
+      const topGlow = new THREE.PointLight(0xffffff, 18, 20)
+      topGlow.position.set(0, 4, 1.5)
+      scene.add(topGlow)
 
-      // --- particle field -------------------------------------------
-      const count = 220
+      // --- particle field ----------------------------------------------
+      const count = 260
       const positions = new Float32Array(count * 3)
       for (let i = 0; i < count; i++) {
-        positions[i * 3] = (Math.random() - 0.5) * 12
-        positions[i * 3 + 1] = (Math.random() - 0.5) * 8
+        positions[i * 3] = (Math.random() - 0.5) * 13
+        positions[i * 3 + 1] = (Math.random() - 0.5) * 9
         positions[i * 3 + 2] = (Math.random() - 0.5) * 6 - 2
       }
       const particleGeometry = new THREE.BufferGeometry()
       particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
       const particleMaterial = new THREE.PointsMaterial({
-        color: 0x9ca3af,
-        size: 0.03,
+        color: 0xaab2c0,
+        size: 0.032,
         transparent: true,
-        opacity: 0.55,
+        opacity: 0.6,
       })
       const particles = new THREE.Points(particleGeometry, particleMaterial)
       scene.add(particles)
 
-      // --- interaction ----------------------------------------------
+      // --- interaction ---------------------------------------------------
       const pointer = { x: 0, y: 0 }
       const target = { x: 0, y: 0 }
       function onPointerMove(event: PointerEvent) {
@@ -129,10 +158,7 @@ export function HeroVisual() {
         target.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
         target.y = ((event.clientY - rect.top) / rect.height) * 2 - 1
       }
-      window.addEventListener('pointermove', onPointerMove, { passive: true })
 
-      // Only render while actually on screen — a hero animation has no
-      // business burning battery once the visitor has scrolled past it.
       let visible = true
       const observer = new IntersectionObserver(([entry]) => {
         visible = entry.isIntersecting
@@ -161,15 +187,20 @@ export function HeroVisual() {
         pointer.x += (target.x - pointer.x) * 0.05
         pointer.y += (target.y - pointer.y) * 0.05
 
-        card.rotation.y = -0.35 + pointer.x * 0.5 + Math.sin(t * 0.4) * 0.06
-        card.rotation.x = 0.18 + pointer.y * 0.3 + Math.cos(t * 0.5) * 0.04
-        card.position.y = Math.sin(t * 0.8) * 0.07
+        // Idle sway is deliberately larger than the pointer response, so
+        // the card is alive even when nobody touches the mouse.
+        group.rotation.y = -0.3 + Math.sin(t * 0.45) * 0.35 + pointer.x * 0.45
+        group.rotation.x = 0.14 + Math.cos(t * 0.6) * 0.1 + pointer.y * 0.28
+        group.rotation.z = Math.sin(t * 0.35) * 0.05
+        group.position.y = Math.sin(t * 0.9) * 0.09
 
-        particles.rotation.y = t * 0.02
+        particles.rotation.y = t * 0.025
         particles.rotation.x = pointer.y * 0.05
 
         renderer.render(scene, camera)
       }
+
+      window.addEventListener('pointermove', onPointerMove, { passive: true })
       tick()
       setSceneReady(true)
 
@@ -180,8 +211,11 @@ export function HeroVisual() {
         window.removeEventListener('pointermove', onPointerMove)
         renderer.domElement.remove()
         renderer.dispose()
-        cardGeometry.dispose()
-        cardMaterial.dispose()
+        bodyGeometry.dispose()
+        bodyMaterial.dispose()
+        faceGeometry.dispose()
+        faceMaterial.dispose()
+        faceTexture.dispose()
         stripeGeometry.dispose()
         stripeMaterial.dispose()
         particleGeometry.dispose()
@@ -195,7 +229,7 @@ export function HeroVisual() {
       disposed = true
       cleanup?.()
     }
-  }, [reduced])
+  }, [])
 
   return (
     <div className="relative min-h-[22rem] lg:min-h-[30rem]">
