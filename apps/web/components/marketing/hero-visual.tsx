@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import type * as THREE_NS from 'three'
 import { ProductPreview } from '@/components/marketing/product-preview'
 import { createCardFaceTexture } from '@/components/marketing/card-face-texture'
+import { createDataNodes, createGlassRing, createOrbitingCoins } from '@/components/marketing/scene-objects'
 
 /**
  * Mouse-reactive 3D payment card for the hero.
@@ -150,6 +151,14 @@ export function HeroVisual() {
       const particles = new THREE.Points(particleGeometry, particleMaterial)
       scene.add(particles)
 
+      // --- procedural props ----------------------------------------------
+      const coins = createOrbitingCoins(THREE, 5)
+      scene.add(coins.group)
+      const ring = createGlassRing(THREE)
+      scene.add(ring.mesh)
+      const nodes = createDataNodes(THREE, 6)
+      scene.add(nodes.group)
+
       // --- interaction ---------------------------------------------------
       const pointer = { x: 0, y: 0 }
       const target = { x: 0, y: 0 }
@@ -194,6 +203,20 @@ export function HeroVisual() {
         group.rotation.z = Math.sin(t * 0.35) * 0.05
         group.position.y = Math.sin(t * 0.9) * 0.09
 
+        // Scroll-driven depth: the card recedes and yaws as the hero
+        // leaves the viewport, so the scene reacts to the page rather
+        // than looping in isolation.
+        const rect = mount!.getBoundingClientRect()
+        const progress = Math.min(Math.max(-rect.top / Math.max(rect.height, 1), 0), 1)
+        camera.position.z = 6 + progress * 2.2
+        camera.position.y = progress * 0.6
+        group.rotation.y += progress * 0.6
+        group.scale.setScalar(1 - progress * 0.12)
+
+        coins.update(t)
+        ring.update(t)
+        nodes.update(t)
+
         particles.rotation.y = t * 0.025
         particles.rotation.x = pointer.y * 0.05
 
@@ -220,6 +243,9 @@ export function HeroVisual() {
         stripeMaterial.dispose()
         particleGeometry.dispose()
         particleMaterial.dispose()
+        coins.dispose()
+        ring.dispose()
+        nodes.dispose()
       }
     }
 

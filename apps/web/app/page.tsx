@@ -20,7 +20,7 @@ import { SiteHeader } from '@/components/marketing/site-header'
 import { SiteFooter } from '@/components/marketing/site-footer'
 import { HeroBackdrop } from '@/components/marketing/hero-backdrop'
 import { HeroVisual } from '@/components/marketing/hero-visual'
-import { CountUp, Magnetic, Reveal, RevealGroup } from '@/components/marketing/motion'
+import { CountUp, Magnetic, Reveal, RevealGroup, RevealWords } from '@/components/marketing/motion'
 
 export const metadata: Metadata = {
   title: 'Valoron — A wallet with a ledger that proves itself',
@@ -120,11 +120,9 @@ export default async function LandingPage() {
                   Double-entry ledger · 2FA · Stripe
                 </span>
               </Reveal>
-              <Reveal delay={0.08}>
-                <h1 className="font-heading text-4xl leading-[1.1] font-semibold tracking-tight text-balance sm:text-5xl lg:text-6xl">
-                  Move money on a ledger that proves itself.
-                </h1>
-              </Reveal>
+              <h1 className="font-heading text-4xl leading-[1.1] font-semibold tracking-tight text-balance sm:text-5xl lg:text-6xl">
+                <RevealWords text="Move money on a ledger that proves itself." />
+              </h1>
               <Reveal delay={0.16}>
                 <p className="max-w-xl text-lg text-muted-foreground">
                   Valoron is a USD wallet built on append-only double-entry accounting. Every balance is

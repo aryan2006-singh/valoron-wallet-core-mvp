@@ -170,6 +170,50 @@ export function Magnetic({ children, strength = 0.35 }: { children: ReactNode; s
   )
 }
 
+/**
+ * Reveals a headline word by word, each word rising from behind a clipped
+ * line. Splitting on words rather than characters keeps the text readable
+ * to screen readers and to text search, and avoids the shredded look that
+ * per-character animation gives long sentences.
+ */
+export function RevealWords({ text, className }: { text: string; className?: string }) {
+  const ref = useRef<HTMLSpanElement>(null)
+  const reduced = useReducedMotion()
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el || reduced) return
+
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        el.querySelectorAll('[data-word] > span'),
+        { yPercent: 115 },
+        {
+          yPercent: 0,
+          duration: 0.9,
+          stagger: 0.045,
+          ease: 'power4.out',
+          scrollTrigger: { trigger: el, start: 'top 90%', once: true },
+        }
+      )
+    })
+    return () => ctx.revert()
+  }, [reduced])
+
+  return (
+    <span ref={ref} className={className}>
+      {text.split(' ').map((word, i) => (
+        <span key={`${word}-${i}`} data-word className="inline-block overflow-hidden align-bottom">
+          <span className="inline-block">
+            {word}
+            {i < text.split(' ').length - 1 ? ' ' : ''}
+          </span>
+        </span>
+      ))}
+    </span>
+  )
+}
+
 /** Staggers direct children of a grid/list into view. */
 export function RevealGroup({ children, className }: { children: ReactNode; className?: string }) {
   const ref = useRef<HTMLDivElement>(null)
