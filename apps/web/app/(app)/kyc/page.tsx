@@ -19,7 +19,7 @@ export default function KycPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
+    <div className="mx-auto w-full max-w-sm">
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>Verify your identity</CardTitle>

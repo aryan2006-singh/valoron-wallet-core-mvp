@@ -30,7 +30,7 @@ export default function WithdrawPage() {
 
   if (success) {
     return (
-      <div className="flex min-h-screen items-center justify-center px-4">
+      <div className="mx-auto w-full max-w-sm">
         <p className="text-center text-muted-foreground">
           Your withdrawal is on its way. It typically arrives in 1-3 business days.
         </p>
@@ -39,7 +39,7 @@ export default function WithdrawPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
+    <div className="mx-auto w-full max-w-sm">
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>Withdraw money</CardTitle>

@@ -1,7 +1,9 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-const PUBLIC_PATHS = ['/login', '/signup']
+// "/" is the public marketing page; /login and /signup are the auth
+// screens. Everything else requires a session.
+const PUBLIC_PATHS = ['/', '/login', '/signup']
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request })
@@ -25,26 +27,20 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // TEMP DIAGNOSTIC — remove once the post-login navigation issue is confirmed fixed.
-  console.log('[mw-debug]', request.method, request.nextUrl.pathname, 'user=', user?.id ?? 'none')
-
-  // "/" has no page content of its own — it only ever routes to the
-  // signed-in dashboard or the signed-out login screen.
-  if (request.nextUrl.pathname === '/') {
-    console.log('[mw-debug] rule=root-redirect target=', user ? '/dashboard' : '/login')
-    return NextResponse.redirect(new URL(user ? '/dashboard' : '/login', request.url))
+  // Signed-in users have no reason to see the login/signup forms again —
+  // send them to the wallet instead. "/" stays reachable either way so the
+  // marketing page can be linked and shared without bouncing.
+  if (user && (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup')) {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
   const isPublic =
-    PUBLIC_PATHS.includes(request.nextUrl.pathname) ||
-    request.nextUrl.pathname.startsWith('/api/webhooks')
+    PUBLIC_PATHS.includes(request.nextUrl.pathname) || request.nextUrl.pathname.startsWith('/api/webhooks')
 
   if (!user && !isPublic) {
-    console.log('[mw-debug] rule=no-user-not-public -> redirect /login')
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  console.log('[mw-debug] rule=allow')
   return response
 }
 

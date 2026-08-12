@@ -32,6 +32,12 @@ export async function signUpAction(formData: FormData): Promise<{ error: string 
   return { redirectTo: '/mfa' }
 }
 
+export async function signOutAction(): Promise<{ redirectTo: string }> {
+  const supabase = await createClient()
+  await supabase.auth.signOut()
+  return { redirectTo: '/login' }
+}
+
 export async function logInAction(formData: FormData): Promise<{ error: string } | { redirectTo: string }> {
   const parsed = loginSchema.safeParse({
     email: formData.get('email'),

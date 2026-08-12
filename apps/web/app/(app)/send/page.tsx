@@ -34,14 +34,14 @@ export default function SendMoneyPage() {
 
   if (sentOptimistically) {
     return (
-      <div className="flex min-h-screen items-center justify-center px-4">
+      <div className="mx-auto w-full max-w-sm">
         <p className="text-muted-foreground">Sent!</p>
       </div>
     )
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
+    <div className="mx-auto w-full max-w-sm">
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>Send money</CardTitle>

@@ -30,7 +30,7 @@ export default async function TransactionDetailPage({ params }: { params: Promis
   if (!myEntry) notFound() // RLS already hides other users' transactions; this is a defensive double-check
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
+    <div className="mx-auto w-full max-w-sm">
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="capitalize">{transaction.type.replace('_', ' ')}</CardTitle>

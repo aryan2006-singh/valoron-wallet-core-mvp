@@ -8,7 +8,7 @@ test('a signed-up user can complete MFA enrollment and reach the dashboard', asy
   await page.getByLabel('Full name').fill('Test User')
   await page.getByLabel('Email').fill(email)
   await page.getByLabel('Password').fill('Str0ngPassword!')
-  await page.getByRole('button', { name: /sign up/i }).click()
+  await page.getByRole('button', { name: /create account/i }).click()
   await expect(page).toHaveURL(/\/mfa/)
 
   const secretLocator = page.getByTestId('mfa-manual-key')

@@ -14,7 +14,7 @@ async function signUpAndEnrollMfa(page: Page, email: string) {
   await page.getByLabel('Full name').fill('Critical Path User')
   await page.getByLabel('Email').fill(email)
   await page.getByLabel('Password').fill('Str0ngPassword!')
-  await page.getByRole('button', { name: /sign up/i }).click()
+  await page.getByRole('button', { name: /create account/i }).click()
   await expect(page).toHaveURL(/\/mfa/)
 
   const secret = (await page.getByTestId('mfa-manual-key').textContent())!.trim()

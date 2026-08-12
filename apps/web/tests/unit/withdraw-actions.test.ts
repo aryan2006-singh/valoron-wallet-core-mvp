@@ -11,7 +11,7 @@ vi.mock('@/lib/rate-limit', async (importOriginal) => {
 import { createClient } from '@/lib/supabase/server'
 import { stripe } from '@/lib/stripe/client'
 import { requireVerifiedMfa } from '@/lib/auth/mfa'
-import { requestWithdrawal } from '@/app/withdraw/actions'
+import { requestWithdrawal } from '@/app/(app)/withdraw/actions'
 
 function mockSupabase(rpc: (fn: string, args: unknown) => Promise<{ data: unknown; error: unknown }>) {
   return { rpc }

@@ -117,6 +117,39 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* Ambient drift for the hero backdrop orbs (components/marketing/
+   hero-backdrop.tsx). Compositor-only transforms, and Tailwind's
+   motion-safe: variant keeps them off for reduced-motion visitors. */
+@keyframes drift-a {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(6rem, 4rem, 0) scale(1.12);
+  }
+}
+
+@keyframes drift-b {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1.08);
+  }
+  50% {
+    transform: translate3d(-7rem, -3rem, 0) scale(1);
+  }
+}
+
+@keyframes drift-c {
+  0%,
+  100% {
+    transform: translate3d(-50%, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-40%, 5rem, 0) scale(1.15);
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

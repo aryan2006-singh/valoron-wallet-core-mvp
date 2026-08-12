@@ -24,7 +24,7 @@ export default async function SettingsPage() {
   const mfaEnabled = factors?.all.some((f) => f.factor_type === 'totp' && f.status === 'verified') ?? false
 
   return (
-    <div className="mx-auto max-w-lg space-y-6 p-8">
+    <div className="mx-auto w-full max-w-lg space-y-6">
       <h1 className="text-2xl font-semibold">Settings</h1>
       <Card>
         <CardHeader>
@@ -39,8 +39,13 @@ export default async function SettingsPage() {
         <CardHeader>
           <CardTitle className="text-sm">Two-factor authentication</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-2">
           <Badge variant={mfaEnabled ? 'default' : 'secondary'}>{mfaEnabled ? 'Enabled' : 'Not set up'}</Badge>
+          {!mfaEnabled && (
+            // Without this the 2FA-gated actions (send/deposit/withdraw)
+            // were unreachable for anyone who skipped enrolment at signup.
+            <Button nativeButton={false} render={<Link href="/mfa">Set up 2FA</Link>} size="sm" />
+          )}
         </CardContent>
       </Card>
       <Card>
@@ -54,7 +59,7 @@ export default async function SettingsPage() {
           {profile?.kyc_status !== 'verified' && (
             // This project's Button (Base UI, not Radix) has no `asChild` —
             // use its `render` prop instead.
-            <Button render={<Link href="/kyc">Verify identity</Link>} size="sm" />
+            <Button nativeButton={false} render={<Link href="/kyc">Verify identity</Link>} size="sm" />
           )}
         </CardContent>
       </Card>

@@ -41,7 +41,7 @@ export default function DepositPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
+    <div className="mx-auto w-full max-w-sm">
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>Deposit money</CardTitle>
@@ -88,7 +88,7 @@ function DepositConfirmForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mx-auto max-w-sm space-y-4 p-8">
+    <form onSubmit={handleSubmit} className="mx-auto w-full max-w-sm space-y-4">
       <PaymentElement />
       {error && <p className="text-sm text-destructive">{error}</p>}
       <Button type="submit" className="w-full" disabled={!stripe || isSubmitting}>

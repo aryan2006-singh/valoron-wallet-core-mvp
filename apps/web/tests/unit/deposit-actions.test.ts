@@ -9,7 +9,7 @@ vi.mock('@/lib/rate-limit', async (importOriginal) => {
 
 import { createClient } from '@/lib/supabase/server'
 import { stripe } from '@/lib/stripe/client'
-import { createDepositIntent } from '@/app/deposit/actions'
+import { createDepositIntent } from '@/app/(app)/deposit/actions'
 
 function mockSupabase(userId: string | null, accountId: string | null) {
   return {

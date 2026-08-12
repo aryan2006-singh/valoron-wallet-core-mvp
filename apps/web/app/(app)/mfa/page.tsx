@@ -65,10 +65,10 @@ export default function MfaSetupPage() {
     router.replace('/dashboard')
   }
 
-  if (loading) return <div className="flex min-h-screen items-center justify-center">Loading…</div>
+  if (loading) return <div className="flex justify-center py-12">Loading…</div>
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
+    <div className="mx-auto w-full max-w-sm">
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>Set up two-factor authentication</CardTitle>
