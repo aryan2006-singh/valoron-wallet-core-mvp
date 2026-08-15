@@ -7,7 +7,15 @@ import { cn } from '@/lib/utils'
 import { AccountMenu } from '@/components/layout/account-menu'
 import { PRIMARY_NAV, isActivePath } from '@/components/layout/nav-config'
 
-export function AppHeader({ email, fullName }: { email: string; fullName: string | null }) {
+export function AppHeader({
+  email,
+  fullName,
+  mfaEnabled,
+}: {
+  email: string
+  fullName: string | null
+  mfaEnabled: boolean
+}) {
   const pathname = usePathname()
 
   return (
@@ -43,7 +51,7 @@ export function AppHeader({ email, fullName }: { email: string; fullName: string
         </nav>
 
         <div className="ml-auto">
-          <AccountMenu email={email} fullName={fullName} />
+          <AccountMenu email={email} fullName={fullName} mfaEnabled={mfaEnabled} />
         </div>
       </div>
     </header>

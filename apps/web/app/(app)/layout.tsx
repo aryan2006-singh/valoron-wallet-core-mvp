@@ -34,7 +34,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-screen flex-col">
-      <AppHeader email={user.email ?? ''} fullName={profile?.full_name ?? null} />
+      <AppHeader email={user.email ?? ''} fullName={profile?.full_name ?? null} mfaEnabled={mfaEnabled} />
       {/* pb-24 clears the fixed MobileTabBar; it collapses at md, where
           the tab bar is hidden and the header's inline nav takes over. */}
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 pt-6 pb-24 md:px-6 md:pb-12">

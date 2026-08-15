@@ -18,7 +18,15 @@ function initialsOf(fullName: string | null, email: string): string {
   return (parts[0]?.[0] ?? '?').concat(parts[1]?.[0] ?? '').toUpperCase()
 }
 
-export function AccountMenu({ email, fullName }: { email: string; fullName: string | null }) {
+export function AccountMenu({
+  email,
+  fullName,
+  mfaEnabled,
+}: {
+  email: string
+  fullName: string | null
+  mfaEnabled: boolean
+}) {
   const router = useRouter()
   const [isSigningOut, startTransition] = useTransition()
 
@@ -66,7 +74,11 @@ export function AccountMenu({ email, fullName }: { email: string; fullName: stri
             <Menu.Item
               className={ITEM_CLASS}
               render={
-                <Link href="/mfa">
+                // /mfa is a setup-only screen: once enrolled it immediately
+                // redirects back to the dashboard, which from here looked
+                // like the link did nothing. Send already-enrolled users to
+                // Settings, where the real status lives, instead.
+                <Link href={mfaEnabled ? '/settings' : '/mfa'}>
                   <ShieldCheck />
                   Two-factor authentication
                 </Link>
