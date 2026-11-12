@@ -16,9 +16,9 @@ export function TransactionList({ transactions }: { transactions: TransactionRow
     return <p className="text-sm text-muted-foreground">No transactions yet.</p>
   }
   return (
-    <ul className="divide-y">
-      {transactions.map((txn) => (
-        <li key={txn.id}>
+    <ul className="stagger divide-y">
+      {transactions.map((txn, index) => (
+        <li key={txn.id} style={{ "--i": index } as React.CSSProperties}>
           <Link href={`/transactions/${txn.id}`} className="flex items-center justify-between gap-4 py-4 transition-colors hover:bg-muted/40">
             <div>
               <p className="text-sm font-medium capitalize">{txn.type.replace('_', ' ')}</p>

@@ -158,6 +158,22 @@ export default async function LandingPage() {
           </div>
         </section>
 
+        {/* Ticker */}
+        <section aria-hidden className="marquee overflow-hidden border-y border-foreground/10 py-5">
+          <div className="marquee-track flex w-max gap-12 font-mono text-xs tracking-[0.2em] whitespace-nowrap text-muted-foreground uppercase">
+            {[0, 1].map((copy) => (
+              <div key={copy} className="flex gap-12">
+                {['Append-only ledger', 'Two-factor secured', 'Stripe deposits', 'Idempotent transfers', 'Row-level security', 'Live balances', 'Immutable audit trail'].map((item) => (
+                  <span key={item} className="flex items-center gap-12">
+                    {item}
+                    <span className="size-1.5 rounded-full bg-positive" />
+                  </span>
+                ))}
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* Stats */}
         <section>
           <RevealGroup className="mx-auto grid w-full max-w-[96rem] gap-10 px-6 py-24 sm:grid-cols-3 sm:px-10">

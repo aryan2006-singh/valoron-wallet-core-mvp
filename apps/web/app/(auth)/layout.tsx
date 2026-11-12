@@ -28,9 +28,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <h2 className="max-w-md font-heading text-5xl leading-[1.02] font-extralight tracking-[-0.045em] text-balance text-primary">
             A wallet that can prove where every cent came from.
           </h2>
-          <ul className="space-y-6">
-            {HIGHLIGHTS.map(({ icon: Icon, title, body }) => (
-              <li key={title} className="flex gap-4">
+          <ul className="stagger space-y-6">
+            {HIGHLIGHTS.map(({ icon: Icon, title, body }, i) => (
+              <li key={title} className="flex gap-4" style={{ '--i': i + 2 } as React.CSSProperties}>
                 <span className="flex size-10 shrink-0 items-center justify-center rounded-full ring-1 ring-primary/40 text-primary">
                   <Icon className="size-4.5" />
                 </span>
