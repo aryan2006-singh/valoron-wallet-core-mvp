@@ -135,7 +135,7 @@ export function DashboardClient({
   }, [accountId])
 
   return (
-    <div className="space-y-6">
+    <div className="stagger space-y-6">
       <BalanceCard balanceCents={balanceCents} />
       <div>
         <h2 className="mb-3 font-heading text-3xl font-light tracking-[-0.04em] text-primary">Recent activity</h2>

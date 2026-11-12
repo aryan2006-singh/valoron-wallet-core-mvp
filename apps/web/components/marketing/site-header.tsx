@@ -15,16 +15,16 @@ const SECTIONS = [
  */
 export function SiteHeader({ isSignedIn }: { isSignedIn: boolean }) {
   return (
-    <header className="sticky top-0 z-40 border-b bg-background/80 supports-backdrop-filter:backdrop-blur-md">
-      <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-6 px-6">
+    <header className="sticky top-0 z-40 bg-gradient-to-b from-background via-background/70 to-transparent supports-backdrop-filter:backdrop-blur-[2px]">
+      <div className="mx-auto flex h-20 w-full max-w-[96rem] items-center gap-6 px-6 sm:px-10">
         <Link href="/" className="flex items-center gap-2 font-heading font-semibold tracking-tight">
-          <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <span className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
             <Wallet className="size-4" />
           </span>
           Valoron
         </Link>
 
-        <nav className="hidden items-center gap-7 text-xs tracking-[0.14em] text-muted-foreground uppercase md:flex">
+        <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-10 font-mono text-[0.7rem] tracking-[0.2em] text-muted-foreground uppercase md:flex">
           {SECTIONS.map(({ href, label }) => (
             <Link key={href} href={href} className="transition-colors hover:text-foreground">
               {label}

@@ -19,7 +19,7 @@ export function AppHeader({
   const pathname = usePathname()
 
   return (
-    <header className="sticky top-0 z-40 border-b bg-background/80 supports-backdrop-filter:backdrop-blur-md">
+    <header className="sticky top-0 z-40 bg-background/70 supports-backdrop-filter:backdrop-blur-md">
       <div className="mx-auto flex h-14 w-full max-w-4xl items-center gap-2 px-4 md:px-6">
         <Link href="/dashboard" className="flex items-center gap-2 font-heading font-semibold tracking-tight">
           <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">

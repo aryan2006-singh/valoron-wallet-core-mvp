@@ -6,7 +6,6 @@ import {
   ArrowRight,
   ArrowUpRight,
   BadgeCheck,
-  Check,
   Fingerprint,
   Layers,
   Lock,
@@ -110,66 +109,74 @@ export default async function LandingPage() {
 
       <main className="flex-1">
         {/* Hero */}
-        <section className="relative overflow-hidden border-b">
+        <section className="relative isolate -mt-20 flex min-h-svh flex-col justify-end overflow-hidden">
           <HeroBackdrop />
-          <div className="relative mx-auto grid w-full max-w-6xl gap-12 px-6 py-20 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:py-28">
-            <div className="space-y-7">
+          <div className="absolute inset-0 -z-10 lg:left-[22%]">
+            <HeroVisual />
+          </div>
+          <div className="relative mx-auto w-full max-w-[96rem] px-6 pb-24 pt-32 sm:px-10 sm:pb-28">
+            <div className="max-w-5xl space-y-10">
               <Reveal>
-                <span className="eyebrow inline-flex items-center gap-2 rounded-full px-3 py-1.5 ring-1 ring-foreground/15">
+                <span className="eyebrow inline-flex items-center gap-2">
                   <ShieldCheck className="size-3.5" />
                   Double-entry ledger · 2FA · Stripe
                 </span>
               </Reveal>
-              <h1 className="font-heading text-5xl leading-[0.98] font-extralight tracking-[-0.05em] text-balance text-primary sm:text-6xl lg:text-7xl">
-                <RevealWords text="Move money on a ledger that proves itself." />
+              <h1 className="font-heading text-6xl leading-[0.92] font-extralight tracking-[-0.055em] text-balance text-primary sm:text-7xl lg:text-8xl">
+                <RevealWords text="One wallet. A ledger that proves itself." />
               </h1>
-              <Reveal delay={0.16}>
-                <p className="max-w-xl text-lg leading-relaxed text-foreground/80">
-                  Valoron is a USD wallet built on append-only double-entry accounting. Every balance is
-                  reconstructable from its own transaction history — never a single number in a column you have to
-                  take on faith.
-                </p>
-              </Reveal>
-              <Reveal delay={0.24}>
-                <div className="flex flex-wrap items-center gap-3">
-                  <Magnetic>
-                    <Button
-                      size="lg"
-                      nativeButton={false}
-                      render={
-                        <Link href={primaryCta.href}>
-                          {primaryCta.label}
-                          <ArrowRight />
-                        </Link>
-                      }
-                    />
-                  </Magnetic>
-                  {!user && (
-                    <Magnetic strength={0.25}>
-                      <Button size="lg" variant="outline" nativeButton={false} render={<Link href="/login">Log in</Link>} />
+              <div className="flex flex-col gap-8 sm:flex-row sm:items-end sm:gap-14">
+                <Reveal delay={0.16}>
+                  <p className="max-w-md text-lg leading-snug font-light text-foreground/80">
+                    A USD wallet on append-only double-entry accounting. Every balance is reconstructable from its own
+                    history, never a number you take on faith.
+                  </p>
+                </Reveal>
+                <Reveal delay={0.24}>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Magnetic>
+                      <Button
+                        size="lg"
+                        nativeButton={false}
+                        render={
+                          <Link href={primaryCta.href}>
+                            {primaryCta.label}
+                            <ArrowRight />
+                          </Link>
+                        }
+                      />
                     </Magnetic>
-                  )}
-                </div>
-              </Reveal>
-              <Reveal delay={0.32}>
-                <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
-                  {['No hidden balance column', 'Retry-safe by design', 'Full audit trail'].map((point) => (
-                    <li key={point} className="flex items-center gap-1.5">
-                      <Check className="size-4 text-positive" />
-                      {point}
-                    </li>
-                  ))}
-                </ul>
-              </Reveal>
+                    {!user && (
+                      <Magnetic strength={0.25}>
+                        <Button size="lg" variant="outline" nativeButton={false} render={<Link href="/login">Log in</Link>} />
+                      </Magnetic>
+                    )}
+                  </div>
+                </Reveal>
+              </div>
             </div>
+          </div>
+        </section>
 
-            <HeroVisual />
+        {/* Ticker */}
+        <section aria-hidden className="marquee overflow-hidden border-y border-foreground/10 py-5">
+          <div className="marquee-track flex w-max gap-12 font-mono text-xs tracking-[0.2em] whitespace-nowrap text-muted-foreground uppercase">
+            {[0, 1].map((copy) => (
+              <div key={copy} className="flex gap-12">
+                {['Append-only ledger', 'Two-factor secured', 'Stripe deposits', 'Idempotent transfers', 'Row-level security', 'Live balances', 'Immutable audit trail'].map((item) => (
+                  <span key={item} className="flex items-center gap-12">
+                    {item}
+                    <span className="size-1.5 rounded-full bg-positive" />
+                  </span>
+                ))}
+              </div>
+            ))}
           </div>
         </section>
 
         {/* Stats */}
-        <section className="border-b">
-          <RevealGroup className="mx-auto grid w-full max-w-6xl gap-8 px-6 py-14 sm:grid-cols-3">
+        <section>
+          <RevealGroup className="mx-auto grid w-full max-w-[96rem] gap-10 px-6 py-24 sm:grid-cols-3 sm:px-10">
             <Stat value={<CountUp to={77} />} label="Automated tests run on every change" />
             <Stat value={<CountUp to={100} suffix="%" />} label="Of balances derived from ledger history" />
             <Stat value={<CountUp to={0} />} label="Trusted balance columns anywhere in the schema" />
@@ -177,8 +184,8 @@ export default async function LandingPage() {
         </section>
 
         {/* Features */}
-        <section id="features" className="scroll-mt-16 border-b">
-          <div className="mx-auto w-full max-w-6xl px-6 py-20">
+        <section id="features" className="scroll-mt-16">
+          <div className="mx-auto w-full max-w-[96rem] px-6 py-28 sm:px-10">
             <Reveal>
               <SectionHeading
                 eyebrow="Features"
@@ -186,17 +193,18 @@ export default async function LandingPage() {
                 body="Each flow is built so the failure case is as well defined as the happy path."
               />
             </Reveal>
-            <RevealGroup className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {FEATURES.map(({ icon: Icon, title, body }) => (
+            <RevealGroup className="mt-16 border-t border-foreground/15">
+              {FEATURES.map(({ icon: Icon, title, body }, i) => (
                 <div
                   key={title}
-                  className="group rounded-2xl bg-card p-7 ring-1 ring-foreground/10 transition-all duration-300 hover:-translate-y-1 hover:ring-primary/50"
+                  className="group grid items-baseline gap-3 border-b border-foreground/15 py-8 transition-colors hover:bg-foreground/[0.03] md:grid-cols-[4rem_1fr_1.2fr] md:gap-8"
                 >
-                  <span className="flex size-10 items-center justify-center rounded-full ring-1 ring-foreground/20 transition-colors group-hover:bg-primary group-hover:text-primary-foreground group-hover:ring-primary">
-                    <Icon className="size-4.5" />
-                  </span>
-                  <h3 className="mt-5 font-heading text-xl font-light tracking-tight">{title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{body}</p>
+                  <span className="eyebrow">{String(i + 1).padStart(2, '0')}</span>
+                  <h3 className="flex items-center gap-4 font-heading text-3xl font-extralight tracking-[-0.035em] text-primary sm:text-4xl">
+                    {title}
+                    <Icon className="size-5 text-muted-foreground transition-colors group-hover:text-positive" />
+                  </h3>
+                  <p className="max-w-xl text-base leading-relaxed text-muted-foreground">{body}</p>
                 </div>
               ))}
             </RevealGroup>
@@ -205,7 +213,7 @@ export default async function LandingPage() {
 
         {/* Security */}
         <section id="security" className="scroll-mt-16 border-b bg-[radial-gradient(90%_120%_at_0%_0%,var(--card)_0%,var(--background)_65%)]">
-          <div className="mx-auto grid w-full max-w-6xl gap-12 px-6 py-20 lg:grid-cols-[1fr_1.2fr]">
+          <div className="mx-auto grid w-full max-w-[96rem] gap-12 px-6 py-28 sm:px-10 lg:grid-cols-[1fr_1.2fr]">
             <Reveal className="space-y-4">
               <span className="eyebrow">Security</span>
               <h2 className="font-heading text-4xl leading-[1.02] font-light tracking-[-0.045em] text-balance text-primary sm:text-5xl">
@@ -232,13 +240,13 @@ export default async function LandingPage() {
 
         {/* How it works */}
         <section id="how-it-works" className="scroll-mt-16 border-b">
-          <div className="mx-auto w-full max-w-6xl px-6 py-20">
+          <div className="mx-auto w-full max-w-[96rem] px-6 py-28 sm:px-10">
             <Reveal>
               <SectionHeading eyebrow="How it works" title="Up and running in three steps" />
             </Reveal>
             <RevealGroup className="mt-12 grid gap-4 md:grid-cols-3">
               {STEPS.map(({ n, title, body }) => (
-                <div key={n} className="rounded-2xl bg-card p-7 ring-1 ring-foreground/10">
+                <div key={n} className="rounded-[2rem] bg-card p-8 ring-1 ring-foreground/10">
                   <span className="eyebrow">{n}</span>
                   <h3 className="mt-4 font-heading text-xl font-light tracking-tight">{title}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{body}</p>
@@ -250,9 +258,9 @@ export default async function LandingPage() {
 
         {/* Closing CTA */}
         <section>
-          <div className="mx-auto w-full max-w-6xl px-6 py-20">
+          <div className="mx-auto w-full max-w-[96rem] px-6 py-28 sm:px-10">
             <Reveal>
-              <div className="relative flex flex-col items-center gap-6 overflow-hidden rounded-3xl bg-[radial-gradient(120%_140%_at_50%_0%,var(--card)_0%,var(--background)_70%)] px-6 py-20 text-center ring-1 ring-foreground/10">
+              <div className="relative flex flex-col items-center gap-6 overflow-hidden rounded-3xl bg-[radial-gradient(120%_140%_at_50%_0%,var(--card)_0%,var(--background)_70%)] px-6 py-28 sm:px-10 text-center ring-1 ring-foreground/10">
                 <h2 className="max-w-2xl font-heading text-4xl leading-[1.02] font-extralight tracking-[-0.045em] text-balance text-primary sm:text-6xl">
                   Open your wallet in under a minute
                 </h2>
@@ -285,8 +293,8 @@ export default async function LandingPage() {
 function Stat({ value, label }: { value: React.ReactNode; label: string }) {
   return (
     <div>
-      <p className="font-heading text-6xl font-extralight tracking-[-0.05em] text-primary tabular-nums">{value}</p>
-      <p className="mt-2 text-sm text-muted-foreground">{label}</p>
+      <p className="border-b border-foreground/25 pb-3 font-mono text-7xl font-light tracking-[-0.04em] text-primary tabular-nums sm:text-8xl">{value}</p>
+      <p className="mt-3 max-w-[16rem] text-lg leading-snug font-light text-foreground/80">{label}</p>
     </div>
   )
 }

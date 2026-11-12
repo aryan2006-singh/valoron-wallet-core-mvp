@@ -9,8 +9,8 @@ export function BalanceCard({ balanceCents }: { balanceCents: number }) {
       <CardHeader>
         <CardTitle className="eyebrow">Available balance</CardTitle>
       </CardHeader>
-      <CardContent>
-        <p data-testid="balance-amount" className="text-6xl font-extralight tracking-[-0.05em] text-primary tabular-nums sm:text-7xl">
+      <CardContent className="pb-2">
+        <p data-testid="balance-amount" className="text-6xl font-extralight tracking-[-0.05em] text-primary tabular-nums sm:text-8xl">
           {formatCents(balanceCents)}
         </p>
         <div className="mt-6 flex flex-wrap gap-2">

@@ -18,7 +18,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       {/* Brand panel — desktop only; the form carries its own logo on mobile. */}
       <aside className="relative hidden flex-col justify-between overflow-hidden border-r bg-[radial-gradient(110%_90%_at_100%_0%,var(--card)_0%,var(--background)_60%)] p-12 lg:flex">
         <Link href="/" className="flex items-center gap-2 font-heading text-lg font-semibold tracking-tight">
-          <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <span className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
             <Wallet className="size-4.5" />
           </span>
           Valoron
@@ -28,9 +28,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <h2 className="max-w-md font-heading text-5xl leading-[1.02] font-extralight tracking-[-0.045em] text-balance text-primary">
             A wallet that can prove where every cent came from.
           </h2>
-          <ul className="space-y-6">
-            {HIGHLIGHTS.map(({ icon: Icon, title, body }) => (
-              <li key={title} className="flex gap-4">
+          <ul className="stagger space-y-6">
+            {HIGHLIGHTS.map(({ icon: Icon, title, body }, i) => (
+              <li key={title} className="flex gap-4" style={{ '--i': i + 2 } as React.CSSProperties}>
                 <span className="flex size-10 shrink-0 items-center justify-center rounded-full ring-1 ring-primary/40 text-primary">
                   <Icon className="size-4.5" />
                 </span>
