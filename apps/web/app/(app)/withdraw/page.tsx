@@ -42,7 +42,7 @@ export default function WithdrawPage() {
     <div className="mx-auto w-full max-w-sm">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Withdraw money</CardTitle>
+          <CardTitle className="text-3xl font-extralight tracking-[-0.04em] text-primary">Withdraw money</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <Input

@@ -44,7 +44,7 @@ export default function LoginPage() {
         <span className="mb-6 flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground lg:hidden">
           <Wallet className="size-5" />
         </span>
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">Welcome back</h1>
+        <h1 className="font-heading text-4xl font-extralight tracking-[-0.045em] text-primary">Welcome back</h1>
         <p className="text-sm text-muted-foreground">Log in to your Valoron wallet.</p>
       </div>
 

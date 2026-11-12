@@ -22,7 +22,7 @@ export default function KycPage() {
     <div className="mx-auto w-full max-w-sm">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Verify your identity</CardTitle>
+          <CardTitle className="text-3xl font-extralight tracking-[-0.04em] text-primary">Verify your identity</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">

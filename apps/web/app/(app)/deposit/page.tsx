@@ -44,7 +44,7 @@ export default function DepositPage() {
     <div className="mx-auto w-full max-w-sm">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Deposit money</CardTitle>
+          <CardTitle className="text-3xl font-extralight tracking-[-0.04em] text-primary">Deposit money</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <Input

@@ -19,17 +19,17 @@ export function TransactionList({ transactions }: { transactions: TransactionRow
     <ul className="divide-y">
       {transactions.map((txn) => (
         <li key={txn.id}>
-          <Link href={`/transactions/${txn.id}`} className="flex items-center justify-between py-3">
+          <Link href={`/transactions/${txn.id}`} className="flex items-center justify-between gap-4 py-4 transition-colors hover:bg-muted/40">
             <div>
               <p className="text-sm font-medium capitalize">{txn.type.replace('_', ' ')}</p>
               <p className="text-xs text-muted-foreground">{new Date(txn.createdAt).toLocaleString()}</p>
             </div>
             <div className="flex items-center gap-2">
-              <span className={txn.direction === 'credit' ? 'text-green-600' : 'text-foreground'}>
+              <span className={`text-lg font-light tracking-tight tabular-nums ${txn.direction === 'credit' ? 'text-positive' : 'text-foreground'}`}>
                 {txn.direction === 'credit' ? '+' : '-'}
                 {formatCents(txn.amountCents)}
               </span>
-              <Badge variant={txn.status === 'completed' ? 'default' : 'secondary'}>{txn.status}</Badge>
+              <Badge variant={txn.status === 'completed' ? 'outline' : 'secondary'}>{txn.status}</Badge>
             </div>
           </Link>
         </li>
