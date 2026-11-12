@@ -4,8 +4,10 @@ import type { Database } from '@/types/supabase'
 /**
  * SECURITY: This client uses the service-role key and bypasses ALL Row
  * Level Security. Per the project's security baseline, it must be
- * imported ONLY from app/api/webhooks/stripe/route.ts. Do not import
- * this from any page, component, or other server action.
+ * imported ONLY from app/api/webhooks/stripe/route.ts and
+ * lib/supabase/withdrawal-reversal.ts (a single-purpose wrapper around
+ * reverse_withdrawal). Do not import this from any page, component, or
+ * server action.
  */
 export function createAdminClient() {
   return createSupabaseClient<Database>(

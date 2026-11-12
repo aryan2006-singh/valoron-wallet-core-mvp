@@ -43,7 +43,7 @@ export async function createDepositIntent(
     return { error: 'Too many deposit attempts. Try again later.' }
   }
 
-  const idempotencyKey = `deposit-${account.id}-${Date.now()}`
+  const idempotencyKey = `deposit-${crypto.randomUUID()}`
   try {
     const paymentIntent = await stripe.paymentIntents.create(
       {

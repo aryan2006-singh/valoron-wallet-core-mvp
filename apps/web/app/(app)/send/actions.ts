@@ -49,7 +49,7 @@ export async function sendMoney(
     return { error: 'No Valoron user found with that email' }
   }
 
-  const idempotencyKey = `transfer-${mfa.userId}-${Date.now()}`
+  const idempotencyKey = `transfer-${crypto.randomUUID()}`
   transferLog.info(
     { userId: mfa.userId, recipient, amountCents: parsed.data.amountCents, idempotencyKey },
     'transfer initiated'
