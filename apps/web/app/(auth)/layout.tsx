@@ -18,7 +18,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       {/* Brand panel — desktop only; the form carries its own logo on mobile. */}
       <aside className="relative hidden flex-col justify-between overflow-hidden border-r bg-[radial-gradient(110%_90%_at_100%_0%,var(--card)_0%,var(--background)_60%)] p-12 lg:flex">
         <Link href="/" className="flex items-center gap-2 font-heading text-lg font-semibold tracking-tight">
-          <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <span className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
             <Wallet className="size-4.5" />
           </span>
           Valoron
