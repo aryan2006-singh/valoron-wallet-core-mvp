@@ -45,7 +45,7 @@ export default function SignUpPage() {
         <span className="mb-6 flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground lg:hidden">
           <Wallet className="size-5" />
         </span>
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">Create your account</h1>
+        <h1 className="font-heading text-4xl font-extralight tracking-[-0.045em] text-primary">Create your account</h1>
         <p className="text-sm text-muted-foreground">
           Open a Valoron wallet in under a minute. You will set up two-factor authentication next.
         </p>

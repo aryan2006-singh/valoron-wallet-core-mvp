@@ -30,7 +30,7 @@ export function ProductPreview() {
               <p className="text-sm font-medium">{row.label}</p>
               <p className="text-xs text-muted-foreground">{row.meta}</p>
             </div>
-            <span className={`text-sm font-medium ${row.positive ? 'text-emerald-600 dark:text-emerald-400' : ''}`}>
+            <span className={`text-sm font-medium ${row.positive ? 'text-positive' : ''}`}>
               {row.amount}
             </span>
           </div>

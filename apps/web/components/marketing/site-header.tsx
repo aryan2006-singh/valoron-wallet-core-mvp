@@ -24,7 +24,7 @@ export function SiteHeader({ isSignedIn }: { isSignedIn: boolean }) {
           Valoron
         </Link>
 
-        <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
+        <nav className="hidden items-center gap-7 text-xs tracking-[0.14em] text-muted-foreground uppercase md:flex">
           {SECTIONS.map(({ href, label }) => (
             <Link key={href} href={href} className="transition-colors hover:text-foreground">
               {label}

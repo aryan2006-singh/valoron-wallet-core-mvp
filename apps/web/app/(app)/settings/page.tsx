@@ -25,10 +25,10 @@ export default async function SettingsPage() {
 
   return (
     <div className="mx-auto w-full max-w-lg space-y-6">
-      <h1 className="text-2xl font-semibold">Settings</h1>
+      <h1 className="font-heading text-4xl font-extralight tracking-[-0.045em] text-primary">Settings</h1>
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">Account</CardTitle>
+          <CardTitle className="eyebrow">Account</CardTitle>
         </CardHeader>
         <CardContent className="space-y-1 text-sm">
           <p>{profile?.full_name}</p>
@@ -37,7 +37,7 @@ export default async function SettingsPage() {
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">Two-factor authentication</CardTitle>
+          <CardTitle className="eyebrow">Two-factor authentication</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           <Badge variant={mfaEnabled ? 'default' : 'secondary'}>{mfaEnabled ? 'Enabled' : 'Not set up'}</Badge>
@@ -50,7 +50,7 @@ export default async function SettingsPage() {
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">Identity verification</CardTitle>
+          <CardTitle className="eyebrow">Identity verification</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           <Badge variant={profile?.kyc_status === 'verified' ? 'default' : 'secondary'}>
