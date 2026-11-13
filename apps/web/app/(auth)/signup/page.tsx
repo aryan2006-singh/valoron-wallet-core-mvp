@@ -39,7 +39,7 @@ export default function SignUpPage() {
   return (
     <div className="space-y-8">
       <div className="space-y-2">
-        <h1 className="font-serif text-4xl tracking-tight">Create your account</h1>
+        <h1 className="font-heading font-light text-4xl tracking-tight">Create your account</h1>
         <p className="text-sm text-muted-foreground">
           Open a Valoron wallet in under a minute. You will set up two-factor authentication next.
         </p>

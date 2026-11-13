@@ -5,10 +5,9 @@ import { usePathname } from 'next/navigation'
 import type * as THREE_NS from 'three'
 
 /**
- * Full-viewport WebGL backdrop shared by every page: a grainy silver orb
- * (digital of things) and a fan of chrome plates (fragment), floating on
- * black. It is mounted once in the root layout so it persists across route
- * changes; the pathname only retargets where the objects sit, so moving
+ * Full-viewport WebGL backdrop shared by every page: a sweeping fan of
+ * chrome plates floating on black (the fragment.im look). It is mounted once in the root layout so it persists across route
+ * changes; the pathname only retargets how prominent the plates are, so moving
  * from the landing page into the app glides the scene instead of
  * rebuilding it.
  *
@@ -17,12 +16,12 @@ import type * as THREE_NS from 'three'
  * visitors who prefer reduced motion.
  */
 
-type Pose = { orbX: number; orbY: number; orbS: number; plates: number; dim: number }
+type Pose = { plates: number; lift: number }
 
 function poseFor(path: string): Pose {
-  if (path === '/') return { orbX: 0, orbY: -0.1, orbS: 1, plates: 1, dim: 1 }
-  if (path === '/login' || path === '/signup') return { orbX: 1.4, orbY: -0.2, orbS: 0.75, plates: 0.6, dim: 0.85 }
-  return { orbX: 2.2, orbY: -0.9, orbS: 0.55, plates: 0.25, dim: 0.45 }
+  if (path === '/') return { plates: 1, lift: 0 }
+  if (path === '/login' || path === '/signup') return { plates: 0.4, lift: 1.0 }
+  return { plates: 0.22, lift: 1.4 }
 }
 
 export function StageCanvas() {
@@ -43,6 +42,7 @@ export function StageCanvas() {
     async function start() {
       const THREE = await import('three')
       const { RoomEnvironment } = await import('three/examples/jsm/environments/RoomEnvironment.js')
+      const { RoundedBoxGeometry } = await import('three/examples/jsm/geometries/RoundedBoxGeometry.js')
       if (disposed || !mount) return
 
       let renderer: THREE_NS.WebGLRenderer
@@ -62,53 +62,21 @@ export function StageCanvas() {
       const pmrem = new THREE.PMREMGenerator(renderer)
       const envTexture = pmrem.fromScene(new RoomEnvironment(), 0.04).texture
       scene.environment = envTexture
-      scene.environmentIntensity = 0.3
+      scene.environmentIntensity = 1
 
       const camera = new THREE.PerspectiveCamera(32, mount.clientWidth / mount.clientHeight, 0.1, 100)
       camera.position.set(0, 0, 9)
 
-      // --- orb: matte silver with film grain --------------------------
-      const S = 512
-      const canvas = document.createElement('canvas')
-      canvas.width = S
-      canvas.height = S
-      const ctx = canvas.getContext('2d')!
-      const img = ctx.createImageData(S, S)
-      for (let i = 0; i < img.data.length; i += 4) {
-        const v = 110 + Math.random() * 90
-        img.data[i] = v
-        img.data[i + 1] = v
-        img.data[i + 2] = v
-        img.data[i + 3] = 255
-      }
-      ctx.putImageData(img, 0, 0)
-      const grain = new THREE.CanvasTexture(canvas)
-      grain.wrapS = grain.wrapT = THREE.RepeatWrapping
-      grain.repeat.set(4, 2)
-      grain.colorSpace = THREE.SRGBColorSpace
-
-      const orbGeometry = new THREE.SphereGeometry(2.2, 128, 128)
-      const orbMaterial = new THREE.MeshStandardMaterial({
-        map: grain,
-        color: 0xb4bbbd,
-        roughness: 1,
-        metalness: 0,
-        transparent: true,
-      })
-      const orb = new THREE.Mesh(orbGeometry, orbMaterial)
-      scene.add(orb)
-
       // --- chrome plates along a sweeping arc -----------------------------
-      const COUNT = 11
-      const plateGeometry = new THREE.BoxGeometry(0.9, 0.9, 0.05)
+      const COUNT = 9
+      const plateGeometry = new RoundedBoxGeometry(1.5, 1.5, 0.12, 5, 0.14)
       const plateMaterial = new THREE.MeshPhysicalMaterial({
-        color: 0xd7dde0,
+        color: 0xc9d0d2,
         metalness: 1,
-        roughness: 0.14,
+        roughness: 0.2,
         clearcoat: 1,
         clearcoatRoughness: 0.06,
-        envMapIntensity: 1.6,
-        transparent: true,
+        envMapIntensity: 1.3,
       })
       const plates: THREE_NS.Mesh[] = []
       const plateGroup = new THREE.Group()
@@ -119,14 +87,11 @@ export function StageCanvas() {
       }
       scene.add(plateGroup)
 
-      // --- light: bright upper-left, falling into black lower-right -------
-      const key = new THREE.DirectionalLight(0xffffff, 1.7)
-      key.position.set(-6, 5, 3)
+      // --- light: soft white key from the upper left -----------------------
+      const key = new THREE.DirectionalLight(0xffffff, 1.6)
+      key.position.set(-5, 5, 5)
       scene.add(key)
-      scene.add(new THREE.AmbientLight(0xffffff, 0.04))
-      const accent = new THREE.PointLight(0xdbffad, 14, 20)
-      accent.position.set(5, -3, 3)
-      scene.add(accent)
+      scene.add(new THREE.AmbientLight(0xffffff, 0.05))
 
       // --- state ------------------------------------------------------------
       const cur: Pose = { ...poseRef.current }
@@ -155,11 +120,8 @@ export function StageCanvas() {
 
       function render(t: number) {
         const target = poseRef.current
-        cur.orbX = lerp(cur.orbX, target.orbX, 0.04)
-        cur.orbY = lerp(cur.orbY, target.orbY, 0.04)
-        cur.orbS = lerp(cur.orbS, target.orbS, 0.04)
         cur.plates = lerp(cur.plates, target.plates, 0.04)
-        cur.dim = lerp(cur.dim, target.dim, 0.04)
+        cur.lift = lerp(cur.lift, target.lift, 0.04)
         pointer.x = lerp(pointer.x, pointer.tx, 0.05)
         pointer.y = lerp(pointer.y, pointer.ty, 0.05)
 
@@ -168,29 +130,23 @@ export function StageCanvas() {
         const shift = narrow ? 0.35 : 1
         const scroll = Math.min(scrollY / 900, 1)
 
-        orb.position.set(
-          cur.orbX * shift - pointer.x * 0.25,
-          cur.orbY + scroll * 1.4 + pointer.y * -0.15,
-          -1
-        )
-        const orbScale = cur.orbS * (narrow ? 0.62 : 1) * (1 + Math.sin(t * 0.5) * 0.015)
-        orb.scale.setScalar(orbScale)
-        orb.rotation.y = t * 0.04
-        orbMaterial.opacity = cur.dim
-
         plateGroup.visible = cur.plates > 0.02
-        plateMaterial.opacity = Math.min(1, cur.plates * 1.2)
+        // Dim by darkening rather than fading: translucent plates would show
+        // each other through themselves.
+        plateMaterial.color.setScalar(0.79 * cur.plates)
+        plateMaterial.envMapIntensity = 1.3 * cur.plates
         plates.forEach((m, i) => {
           const f = i / (COUNT - 1)
-          // A diagonal sweep: low on the right, rising across the top-left,
-          // each plate flipping a little later than the last.
-          const x = lerp(5.2, -5.2, f) * (narrow ? 0.45 : 1)
-          const y = 1.55 + Math.sin(f * Math.PI) * 0.8 - f * 0.3 + scroll * 2
-          m.position.set(x, y + Math.sin(t * 0.6 + i * 0.7) * 0.08, 0.4 + Math.sin(f * Math.PI) * 0.8)
-          m.rotation.y = Math.sin(t * 0.45 - i * 0.5) * 0.9 + (0.5 - f) * 1.1 + pointer.x * 0.25
-          m.rotation.x = 0.3 + Math.cos(t * 0.35 - i * 0.4) * 0.35 + pointer.y * 0.15
-          m.rotation.z = 0.55 + (f - 0.5) * 0.7
-          m.scale.setScalar(narrow ? 0.6 : 1)
+          // A sweep that starts edge-on at the top left and opens up, larger
+          // and face-on, toward the right; each plate flips a beat after
+          // the one before it.
+          const x = lerp(-5.6, 4.6, f) * (narrow ? 0.45 : 1)
+          const y = 2.0 - Math.sin(f * Math.PI * 0.9) * 0.55 - f * 0.9 + cur.lift + scroll * 2.4
+          m.position.set(x, y + Math.sin(t * 0.6 + i * 0.7) * 0.07, Math.sin(f * Math.PI) * 0.9)
+          m.rotation.y = lerp(1.25, -0.35, f) + Math.sin(t * 0.5 - i * 0.55) * 0.35 + pointer.x * 0.2
+          m.rotation.x = 0.25 + Math.cos(t * 0.35 - i * 0.4) * 0.2 + pointer.y * 0.12
+          m.rotation.z = 0.5 + (f - 0.5) * 0.45
+          m.scale.setScalar(lerp(0.55, 1.25, f) * (narrow ? 0.6 : 1))
         })
 
         renderer.render(scene, camera)
@@ -216,9 +172,6 @@ export function StageCanvas() {
         window.removeEventListener('resize', onResize)
         document.removeEventListener('visibilitychange', onVisibility)
         renderer.domElement.remove()
-        orbGeometry.dispose()
-        orbMaterial.dispose()
-        grain.dispose()
         plateGeometry.dispose()
         plateMaterial.dispose()
         envTexture.dispose()
