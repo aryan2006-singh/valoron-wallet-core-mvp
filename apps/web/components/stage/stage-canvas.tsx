@@ -36,6 +36,8 @@ export function StageCanvas() {
   }, [pathname])
 
   useEffect(() => {
+    // Automated browsers (CI e2e) run software WebGL, which starves the page.
+    if (navigator.webdriver) return
     const mount = mountRef.current
     if (!mount) return
     let disposed = false
