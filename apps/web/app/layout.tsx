@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AutoRevealMount } from "@/components/marketing/auto-reveal-mount";
 import { Geist_Mono, Inter_Tight } from "next/font/google";
 import "./globals.css";
 import { StageCanvas } from "@/components/stage/stage-canvas";
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <StageCanvas />
         {children}
+        <AutoRevealMount />
         <Toaster />
       </body>
     </html>

@@ -84,7 +84,7 @@ export function Reveal({
   }, [delay, y, skip])
 
   return (
-    <div ref={ref} className={className}>
+    <div ref={ref} data-motion className={className}>
       {children}
     </div>
   )
@@ -221,7 +221,7 @@ export function RevealWords({
 
   const words = text.split(' ')
   return (
-    <span ref={ref} className={className}>
+    <span ref={ref} data-motion className={className}>
       {words.map((word, i) => (
         // pb/-mb keeps descenders (g, p, y) from being clipped by the mask.
         <span key={`${word}-${i}`} data-word className="-mb-[0.12em] inline-block overflow-hidden pb-[0.12em] align-bottom">
@@ -264,7 +264,7 @@ export function RevealGroup({ children, className }: { children: ReactNode; clas
   }, [skip])
 
   return (
-    <div ref={ref} className={className}>
+    <div ref={ref} data-motion className={className}>
       {children}
     </div>
   )
@@ -313,8 +313,83 @@ export function RevealRows({ children, className }: { children: ReactNode; class
   }, [skip])
 
   return (
-    <div ref={ref} className={className}>
+    <div ref={ref} data-motion className={className}>
       {children}
     </div>
   )
+}
+
+/**
+ * Site-wide scroll-in for text and cards that no explicit Reveal wrapper
+ * already handles. Mounted once in the root layout; on every route it finds
+ * top-level text/card blocks (and ones added later, e.g. after a fetch) and
+ * lifts each into view once, at 85% down the viewport. App screens get a
+ * shorter, smaller motion than the landing page. Elements are only hidden
+ * by GSAP while it runs, and reverting on route change restores them.
+ */
+const AUTO_SELECTOR =
+  'h1,h2,h3,h4,p,li,hr,dl,table,form,[data-slot="card"],[data-slot="card-content"]'
+const AUTO_SKIP = '[data-motion],[data-sonner-toaster],[aria-hidden="true"],nav,header'
+
+export function AutoReveal({ pathname }: { pathname: string }) {
+  const skip = useSkipMotion()
+
+  useEffect(() => {
+    if (skip) return
+    const landing = pathname === '/'
+    const y = landing ? 50 : 18
+    const duration = landing ? 1 : 0.55
+    const seen = new WeakSet<Element>()
+
+    const ctx = gsap.context(() => {})
+    const scan = () => {
+      const fresh: HTMLElement[] = []
+      document.body.querySelectorAll<HTMLElement>(AUTO_SELECTOR).forEach((el) => {
+        if (seen.has(el)) return
+        if (el.closest(AUTO_SKIP)) return
+        if (el.parentElement?.closest(AUTO_SELECTOR)) return // animate the outer block only
+        seen.add(el)
+        fresh.push(el)
+      })
+      if (!fresh.length) return
+      ctx.add(() => {
+        ScrollTrigger.batch(fresh, {
+          start: START,
+          once: true,
+          onEnter: (batch) =>
+            gsap.fromTo(
+              batch,
+              { opacity: 0, y, filter: landing ? 'blur(6px)' : 'blur(0px)' },
+              {
+                opacity: 1,
+                y: 0,
+                filter: 'blur(0px)',
+                duration,
+                stagger: landing ? 0.1 : 0.05,
+                ease: 'power3.out',
+                clearProps: 'all',
+              }
+            ),
+        })
+      })
+    }
+
+    // Let the new route paint first, then watch for content that arrives later.
+    const first = window.setTimeout(scan, 60)
+    let queued = 0
+    const observer = new MutationObserver(() => {
+      window.clearTimeout(queued)
+      queued = window.setTimeout(scan, 80)
+    })
+    observer.observe(document.body, { childList: true, subtree: true })
+
+    return () => {
+      window.clearTimeout(first)
+      window.clearTimeout(queued)
+      observer.disconnect()
+      ctx.revert()
+    }
+  }, [pathname, skip])
+
+  return null
 }
