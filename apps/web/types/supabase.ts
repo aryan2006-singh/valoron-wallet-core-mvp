@@ -99,6 +99,24 @@ export type Database = {
         }
         Relationships: []
       }
+      escrows: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          description: string | null
+          expires_at: string
+          funder_account_id: string
+          fund_transaction_id: string
+          id: string
+          recipient_account_id: string
+          resolve_transaction_id: string | null
+          resolved_at: string | null
+          status: string
+        }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
       ledger_entries: {
         Row: {
           account_id: string
@@ -237,6 +255,37 @@ export type Database = {
         Returns: Json
       }
       find_recipient_account: { Args: { p_email: string }; Returns: string }
+      fund_escrow: {
+        Args: {
+          p_amount_cents: number
+          p_description: string
+          p_idempotency_key: string
+          p_recipient_account_id: string
+        }
+        Returns: Json
+      }
+      my_escrows: {
+        Args: never
+        Returns: {
+          amount_cents: number
+          can_refund: boolean
+          counterparty_name: string
+          created_at: string
+          description: string
+          expires_at: string
+          id: string
+          role: string
+          status: string
+        }[]
+      }
+      refund_escrow: {
+        Args: { p_escrow_id: string; p_idempotency_key: string }
+        Returns: Json
+      }
+      release_escrow: {
+        Args: { p_escrow_id: string; p_idempotency_key: string }
+        Returns: Json
+      }
       record_deposit: {
         Args: {
           p_account_id: string

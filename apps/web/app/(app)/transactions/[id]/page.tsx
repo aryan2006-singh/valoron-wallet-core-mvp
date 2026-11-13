@@ -33,7 +33,7 @@ export default async function TransactionDetailPage({ params }: { params: Promis
     <div className="mx-auto w-full max-w-sm">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="capitalize">{transaction.type.replace('_', ' ')}</CardTitle>
+          <CardTitle className="capitalize">{transaction.type.replaceAll('_', ' ')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           <p className="text-3xl font-semibold">
