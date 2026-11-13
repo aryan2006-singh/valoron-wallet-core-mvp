@@ -18,7 +18,7 @@ export function AppHeader({
   const pathname = usePathname()
 
   return (
-    <header className="sticky top-0 z-40 border-b bg-background/80 supports-backdrop-filter:backdrop-blur-md">
+    <header className="sticky top-0 z-40 border-b bg-black/40 backdrop-blur-md">
       <div className="mx-auto flex h-14 w-full max-w-4xl items-center gap-2 px-4 md:px-6">
         <Link href="/dashboard" className="flex items-center gap-2 text-lg font-medium tracking-tight">
           valoron<span className="size-1.5 rounded-full bg-primary" />
@@ -35,7 +35,7 @@ export function AppHeader({
                 href={href}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'flex h-8 items-center gap-1.5 rounded-full px-4 text-sm font-medium transition-colors',
+                  'flex h-8 items-center gap-1.5 rounded-full px-4 font-mono text-xs tracking-widest uppercase transition-colors',
                   active ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
                 )}
               >
