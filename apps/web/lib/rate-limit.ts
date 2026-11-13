@@ -22,6 +22,7 @@ export const loginRateLimit = createRateLimiter('login', 5, '1 m')
 export const transferRateLimit = createRateLimiter('transfer', 10, '1 m')
 export const withdrawalRateLimit = createRateLimiter('withdrawal', 5, '1 h')
 export const depositRateLimit = createRateLimiter('deposit', 10, '1 h') // card-testing-fraud resistance
+export const assistantRateLimit = createRateLimiter('assistant', 20, '1 m') // each message is a paid model call
 
 export async function enforceRateLimit(limiter: Ratelimit, identifier: string): Promise<boolean> {
   try {

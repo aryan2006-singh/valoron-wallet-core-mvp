@@ -1,6 +1,8 @@
+import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { DashboardClient } from '@/components/wallet/dashboard-client'
+import { InsightsCard, InsightsCardSkeleton } from '@/components/wallet/insights-card'
 import type { TransactionRow } from '@/components/wallet/transaction-list'
 
 // See components/wallet/dashboard-client.tsx's TxnJoinRow comment — same
@@ -10,6 +12,7 @@ type TxnJoinRow = {
   type: TransactionRow['type']
   status: TransactionRow['status']
   created_at: string
+  note: string | null
   ledger_entries: { amount_cents: number; direction: TransactionRow['direction']; account_id: string }[]
 }
 
@@ -33,7 +36,7 @@ export default async function DashboardPage() {
 
   const { data: txnRows } = await supabase
     .from('transactions')
-    .select('id, type, status, created_at, ledger_entries!inner(amount_cents, direction, account_id)')
+    .select('id, type, status, created_at, note, ledger_entries!inner(amount_cents, direction, account_id)')
     .eq('ledger_entries.account_id', account.id)
     .order('created_at', { ascending: false })
     .limit(20)
@@ -45,6 +48,7 @@ export default async function DashboardPage() {
     createdAt: t.created_at,
     amountCents: t.ledger_entries[0].amount_cents,
     direction: t.ledger_entries[0].direction,
+    note: t.note,
   }))
 
   return (
@@ -53,6 +57,11 @@ export default async function DashboardPage() {
       initialBalanceCents={latestEntry?.balance_after_cents ?? 0}
       initialLedgerEntryId={latestEntry?.id ?? 0}
       initialTransactions={transactions}
+      insights={
+        <Suspense fallback={<InsightsCardSkeleton />}>
+          <InsightsCard userId={user.id} accountId={account.id} />
+        </Suspense>
+      }
     />
   )
 }

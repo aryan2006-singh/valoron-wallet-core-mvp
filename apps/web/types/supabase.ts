@@ -171,6 +171,8 @@ export type Database = {
           id: string
           idempotency_key: string
           initiated_by: string | null
+          note: string | null
+          category: string | null
           status: string
           stripe_reference: string | null
           type: string
@@ -181,6 +183,8 @@ export type Database = {
           id?: string
           idempotency_key: string
           initiated_by?: string | null
+          note?: string | null
+          category?: string | null
           status?: string
           stripe_reference?: string | null
           type: string
@@ -191,6 +195,8 @@ export type Database = {
           id?: string
           idempotency_key?: string
           initiated_by?: string | null
+          note?: string | null
+          category?: string | null
           status?: string
           stripe_reference?: string | null
           type?: string
@@ -200,6 +206,35 @@ export type Database = {
           {
             foreignKeyName: "transactions_initiated_by_fkey"
             columns: ["initiated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      weekly_insights: {
+        Row: {
+          created_at: string
+          summary: string
+          user_id: string
+          week_start: string
+        }
+        Insert: {
+          created_at?: string
+          summary: string
+          user_id: string
+          week_start: string
+        }
+        Update: {
+          created_at?: string
+          summary?: string
+          user_id?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_insights_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -260,6 +295,8 @@ export type Database = {
           p_amount_cents: number
           p_idempotency_key: string
           p_recipient_account_id: string
+          p_note?: string | null
+          p_category?: string | null
         }
         Returns: Json
       }

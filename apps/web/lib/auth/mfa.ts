@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 
 export async function requireVerifiedMfa(): Promise<
-  { ok: true; userId: string } | { ok: false; error: string }
+  { ok: true; userId: string; email?: string } | { ok: false; error: string }
 > {
   const supabase = await createClient()
   const {
@@ -13,5 +13,5 @@ export async function requireVerifiedMfa(): Promise<
   if (error || !data || data.currentLevel !== 'aal2') {
     return { ok: false, error: 'Two-factor verification is required for this action' }
   }
-  return { ok: true, userId: user.id }
+  return user.email ? { ok: true, userId: user.id, email: user.email } : { ok: true, userId: user.id }
 }

@@ -16,7 +16,7 @@ export function MobileTabBar() {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] supports-backdrop-filter:backdrop-blur-md md:hidden">
-      <ul className="mx-auto grid max-w-md grid-cols-4">
+      <ul className="mx-auto grid max-w-md grid-cols-5">
         {PRIMARY_NAV.map(({ href, label, icon: Icon }) => {
           const active = isActivePath(pathname, href)
           return (

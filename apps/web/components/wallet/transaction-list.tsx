@@ -9,6 +9,7 @@ export type TransactionRow = {
   amountCents: number
   direction: 'credit' | 'debit'
   createdAt: string
+  note?: string | null
 }
 
 export function TransactionList({ transactions }: { transactions: TransactionRow[] }) {
@@ -22,7 +23,10 @@ export function TransactionList({ transactions }: { transactions: TransactionRow
           <Link href={`/transactions/${txn.id}`} className="flex items-center justify-between py-3">
             <div>
               <p className="text-sm font-medium capitalize">{txn.type.replace('_', ' ')}</p>
-              <p className="text-xs text-muted-foreground">{new Date(txn.createdAt).toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground">
+                {new Date(txn.createdAt).toLocaleString()}
+                {txn.note ? ` · ${txn.note}` : ''}
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <span className={txn.direction === 'credit' ? 'text-green-600' : 'text-foreground'}>

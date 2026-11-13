@@ -1,4 +1,4 @@
-import { ArrowDownLeft, ArrowUpRight, Send, Settings, Wallet } from 'lucide-react'
+import { ArrowDownLeft, ArrowUpRight, Send, Settings, Sparkles, Wallet } from 'lucide-react'
 
 /**
  * Single source of truth for the app's primary navigation. The desktop
@@ -12,12 +12,13 @@ export type NavItem = {
   icon: typeof Wallet
 }
 
-/** Money-movement routes — shown in the header and the mobile tab bar. */
+/** Money-movement routes plus the assistant — shown in the header and the mobile tab bar. */
 export const PRIMARY_NAV: NavItem[] = [
   { href: '/dashboard', label: 'Home', icon: Wallet },
   { href: '/send', label: 'Send', icon: Send },
   { href: '/deposit', label: 'Deposit', icon: ArrowDownLeft },
   { href: '/withdraw', label: 'Withdraw', icon: ArrowUpRight },
+  { href: '/assistant', label: 'Assistant', icon: Sparkles },
 ]
 
 /**

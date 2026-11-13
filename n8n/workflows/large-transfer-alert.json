@@ -1,0 +1,148 @@
+{
+  "name": "Valoron - large transfer alert",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "valoron-events",
+        "options": {}
+      },
+      "id": "215add33-ece3-45c8-b712-cac243530d6c",
+      "name": "Valoron events",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "43244999-79ba-4b88-b0be-08ec38060638"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Checks the x-valoron-signature header the app adds (HMAC-SHA256 of the\n// JSON body, keyed with N8N_WEBHOOK_SECRET) and drops anything that fails.\n// Needs NODE_FUNCTION_ALLOW_BUILTIN=crypto on the n8n instance.\nconst crypto = require('crypto');\nconst SECRET = 'REPLACE_WITH_N8N_WEBHOOK_SECRET';\n\nreturn $input.all()\n  .filter((item) => {\n    const body = JSON.stringify(item.json.body);\n    const expected = crypto.createHmac('sha256', SECRET).update(body).digest('hex');\n    const given = String(item.json.headers['x-valoron-signature'] || '');\n    return given.length === expected.length &&\n      crypto.timingSafeEqual(Buffer.from(given), Buffer.from(expected));\n  })\n  .map((item) => ({ json: item.json.body }));"
+      },
+      "id": "6c0d16f0-9412-44cf-8a3f-ea1830fa6da0",
+      "name": "Verify signature",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "e8cecf46-4ed0-4dda-98cf-1f7f9a917989",
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "transfer.completed",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "4d8127fb-d4f0-4938-ab46-7e920be8945f",
+              "leftValue": "={{ $json.data.amountCents }}",
+              "rightValue": 50000,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            },
+            {
+              "id": "e7892182-98b3-46f7-9aeb-c0e946d86426",
+              "leftValue": "={{ $json.data.userEmail }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "eadc5bc4-0a01-45c0-9643-f5ff8c809592",
+      "name": "Transfer of $500 or more?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "wallet@your-domain.com",
+        "toEmail": "={{ $json.data.userEmail }}",
+        "subject": "You sent {{ ($json.data.amountCents/100).toLocaleString('en-US', {style: 'currency', currency: 'USD'}) }} from Valoron",
+        "emailFormat": "text",
+        "text": "A transfer of {{ ($json.data.amountCents/100).toLocaleString('en-US', {style: 'currency', currency: 'USD'}) }} to {{ $json.data.recipient }} just left your Valoron wallet{{ $json.data.note ? ' (\"' + $json.data.note + '\")' : '' }}.\n\nIf this was you, there's nothing to do. If it wasn't, change your password and contact support right away.\n\nValoron",
+        "options": {}
+      },
+      "id": "a2aab9ba-d06d-45a6-91b9-081be3797cce",
+      "name": "Email the sender",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        660,
+        -80
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "",
+          "name": "SMTP account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Valoron events": {
+      "main": [
+        [
+          {
+            "node": "Verify signature",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify signature": {
+      "main": [
+        [
+          {
+            "node": "Transfer of $500 or more?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transfer of $500 or more?": {
+      "main": [
+        [
+          {
+            "node": "Email the sender",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

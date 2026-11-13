@@ -1,0 +1,184 @@
+{
+  "name": "Valoron - weekly insights email",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "id": "647ec232-fc94-476d-a997-77598c631b10",
+      "name": "Every Monday 9am",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b0759ef7-a8f6-4a49-9908-4442ebc04cb7",
+              "name": "appUrl",
+              "value": "https://valoron-wallet-core-mvp.onrender.com",
+              "type": "string"
+            },
+            {
+              "id": "85b6aa72-87fa-4981-a1a3-c01c4a59bd2d",
+              "name": "fromEmail",
+              "value": "wallet@your-domain.com",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "14f8fb99-fd75-44f5-984b-c8f53fc8c86c",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Config').first().json.appUrl }}/api/n8n/weekly-insights",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "pagination": {
+            "pagination": {
+              "paginationMode": "updateAParameterInEachRequest",
+              "parameters": {
+                "parameters": [
+                  {
+                    "type": "qs",
+                    "name": "page",
+                    "value": "={{ $pageCount + 1 }}"
+                  }
+                ]
+              },
+              "paginationCompleteWhen": "other",
+              "completeExpression": "={{ $response.body.nextPage === null }}"
+            }
+          }
+        }
+      },
+      "id": "d1407e9e-240b-4503-9367-e316d6b7049b",
+      "name": "Fetch weekly insights",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Valoron n8n API secret"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "users",
+        "options": {}
+      },
+      "id": "ad6f8e3d-9362-4335-b74b-e5939eb0093e",
+      "name": "One item per user",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        660,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $('Config').first().json.fromEmail }}",
+        "toEmail": "={{ $json.email }}",
+        "subject": "Your Valoron week: {{ (($json.thisWeek.outCents)/100).toLocaleString('en-US', {style: 'currency', currency: 'USD'}) }} out",
+        "emailFormat": "text",
+        "text": "Hi {{ $json.fullName || 'there' }},\n\n{{ $json.summary }}\n\nThis week\n- Money out: {{ (($json.thisWeek.outCents)/100).toLocaleString('en-US', {style: 'currency', currency: 'USD'}) }}\n- Money in: {{ (($json.thisWeek.inCents)/100).toLocaleString('en-US', {style: 'currency', currency: 'USD'}) }}\n\nAsk the wallet assistant for more: {{ $('Config').first().json.appUrl }}/assistant\n\nValoron",
+        "options": {}
+      },
+      "id": "36acc488-00cf-41a1-a111-e11da5d08069",
+      "name": "Send summary email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        0
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "",
+          "name": "SMTP account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every Monday 9am": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Fetch weekly insights",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch weekly insights": {
+      "main": [
+        [
+          {
+            "node": "One item per user",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "One item per user": {
+      "main": [
+        [
+          {
+            "node": "Send summary email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

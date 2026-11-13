@@ -3,6 +3,7 @@ import { z } from 'zod'
 export const transferSchema = z.object({
   recipientEmail: z.string().email('Enter a valid email address'),
   amountCents: z.number().int().positive().max(1_000_000), // $10,000 cap per transfer
+  note: z.string().trim().max(140, 'Keep the note to 140 characters or fewer').optional(),
 })
 export type TransferInput = z.infer<typeof transferSchema>
 

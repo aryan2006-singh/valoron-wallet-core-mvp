@@ -30,3 +30,13 @@ services:
         sync: false
       - key: NEXT_PUBLIC_SENTRY_DSN
         sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: AI_MODEL
+        sync: false
+      - key: N8N_WEBHOOK_URL
+        sync: false
+      - key: N8N_WEBHOOK_SECRET
+        sync: false
+      - key: N8N_API_SECRET
+        sync: false

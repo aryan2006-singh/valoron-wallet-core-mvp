@@ -18,7 +18,7 @@ export default async function TransactionDetailPage({ params }: { params: Promis
 
   const { data: transaction } = await supabase
     .from('transactions')
-    .select('id, type, status, created_at, ledger_entries(amount_cents, direction, account_id)')
+    .select('id, type, status, created_at, note, category, ledger_entries(amount_cents, direction, account_id)')
     .eq('id', id)
     .maybeSingle()
   if (!transaction) notFound()
@@ -41,6 +41,10 @@ export default async function TransactionDetailPage({ params }: { params: Promis
             {formatCents(myEntry.amount_cents)}
           </p>
           <Badge variant={transaction.status === 'completed' ? 'default' : 'secondary'}>{transaction.status}</Badge>
+          {transaction.note && <p className="text-sm">&ldquo;{transaction.note}&rdquo;</p>}
+          {transaction.category && transaction.category !== 'other' && (
+            <p className="text-xs capitalize text-muted-foreground">Category: {transaction.category}</p>
+          )}
           <p className="text-sm text-muted-foreground">{new Date(transaction.created_at).toLocaleString()}</p>
         </CardContent>
       </Card>
