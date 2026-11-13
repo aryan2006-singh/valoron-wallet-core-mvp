@@ -8,6 +8,7 @@ import {
   BadgeCheck,
   Check,
   Fingerprint,
+  Handshake,
   Layers,
   Lock,
   ScrollText,
@@ -43,6 +44,11 @@ const FEATURES = [
     icon: ArrowUpRight,
     title: 'Bank withdrawals',
     body: 'Move money out via Stripe payouts. If a payout cannot be initiated, the ledger entry reverses itself automatically and your balance is restored.',
+  },
+  {
+    icon: Handshake,
+    title: 'Escrow',
+    body: 'Lock funds for someone and release them when you are satisfied. Held money leaves your spendable balance at once, and a release or refund can only ever happen once.',
   },
   {
     icon: Activity,

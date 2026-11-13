@@ -15,3 +15,10 @@ export const withdrawalSchema = z.object({
   amountCents: z.number().int().min(100, 'Minimum withdrawal is $1'),
 })
 export type WithdrawalInput = z.infer<typeof withdrawalSchema>
+
+export const escrowSchema = z.object({
+  recipientEmail: z.string().email('Enter a valid email address'),
+  amountCents: z.number().int().positive().max(1_000_000), // same $10,000 cap as transfers
+  description: z.string().trim().max(140, 'Keep the description under 140 characters').optional(),
+})
+export type EscrowInput = z.infer<typeof escrowSchema>

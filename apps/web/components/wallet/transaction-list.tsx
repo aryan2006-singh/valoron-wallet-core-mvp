@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge'
 
 export type TransactionRow = {
   id: string
-  type: 'p2p_transfer' | 'deposit' | 'withdrawal'
+  type: 'p2p_transfer' | 'deposit' | 'withdrawal' | 'escrow_fund' | 'escrow_release' | 'escrow_refund'
   status: 'pending' | 'completed' | 'failed' | 'reversed'
   amountCents: number
   direction: 'credit' | 'debit'
@@ -21,7 +21,7 @@ export function TransactionList({ transactions }: { transactions: TransactionRow
         <li key={txn.id}>
           <Link href={`/transactions/${txn.id}`} className="flex items-center justify-between py-3">
             <div>
-              <p className="text-sm font-medium capitalize">{txn.type.replace('_', ' ')}</p>
+              <p className="text-sm font-medium capitalize">{txn.type.replaceAll('_', ' ')}</p>
               <p className="text-xs text-muted-foreground">{new Date(txn.createdAt).toLocaleString()}</p>
             </div>
             <div className="flex items-center gap-2">
