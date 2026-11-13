@@ -8,7 +8,10 @@ export function SiteFooter() {
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-12 md:flex-row md:items-end md:justify-between">
         <div className="space-y-3">
           <Link href="/" className="flex items-center gap-2 text-lg font-medium tracking-tight">
-            valoron<span className="size-1.5 rounded-full bg-primary" />
+            <span className="grid size-5 place-items-center rounded-[5px] bg-primary text-[0.7rem] font-semibold text-primary-foreground">
+            v
+          </span>
+          valoron
           </Link>
           <p className="max-w-xs text-sm text-muted-foreground">
             A wallet built on an append-only double-entry ledger, so every balance can be proven, not just trusted.

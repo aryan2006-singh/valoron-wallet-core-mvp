@@ -9,7 +9,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-inter-tight), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
-  --font-serif: var(--font-instrument-serif), Georgia, serif;
+  --font-serif: var(--font-inter-tight), ui-sans-serif, system-ui, sans-serif;
   --font-heading: var(--font-inter-tight), ui-sans-serif, system-ui, sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -51,16 +51,16 @@
 
 :root,
 .dark {
-  /* digital-of-things-inspired: black canvas, off-white ink, one lime
-     accent (#dbffad) reserved for primary actions and money-in. */
+  /* fragment.im palette: black canvas, silver (#c9d0d2) ink and actions,
+     grey-green panels (#121516), muted text #8d9496. */
   --background: #000000;
   --foreground: #eef1f2;
   --card: #121516;
   --card-foreground: #eef1f2;
   --popover: #141414;
   --popover-foreground: #f4f4f1;
-  --primary: #dbffad;
-  --primary-foreground: #0a0f00;
+  --primary: #c9d0d2;
+  --primary-foreground: #0b0d0e;
   --secondary: #1d2224;
   --secondary-foreground: #f4f4f1;
   --muted: #171b1c;
@@ -70,21 +70,21 @@
   --destructive: #ff7a6b;
   --border: rgb(201 208 210 / 14%);
   --input: rgb(255 255 255 / 16%);
-  --ring: #dbffad;
-  --chart-1: #dbffad;
-  --chart-2: #b8c9a0;
+  --ring: #c9d0d2;
+  --chart-1: #c9d0d2;
+  --chart-2: #a5acae;
   --chart-3: #8e8e8a;
   --chart-4: #5a5a57;
   --chart-5: #2a2a2a;
-  --radius: 0.75rem;
+  --radius: 0.5rem;
   --sidebar: #121516;
   --sidebar-foreground: #f4f4f1;
-  --sidebar-primary: #dbffad;
-  --sidebar-primary-foreground: #0a0f00;
+  --sidebar-primary: #c9d0d2;
+  --sidebar-primary-foreground: #0b0d0e;
   --sidebar-accent: #212121;
   --sidebar-accent-foreground: #f4f4f1;
   --sidebar-border: rgb(255 255 255 / 10%);
-  --sidebar-ring: #dbffad;
+  --sidebar-ring: #c9d0d2;
 }
 
 /* Ambient drift for the hero backdrop orbs (components/marketing/
@@ -133,7 +133,7 @@
     letter-spacing: -0.02em;
   }
   ::selection {
-    background: #dbffad;
+    background: #c9d0d2;
     color: #000;
   }
   html {

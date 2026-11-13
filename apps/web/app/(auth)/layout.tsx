@@ -12,7 +12,10 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     <div className="flex min-h-screen flex-col px-6 py-6">
       <header className="flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 text-lg font-medium tracking-tight">
-          valoron<span className="size-1.5 rounded-full bg-primary" />
+          <span className="grid size-5 place-items-center rounded-[5px] bg-primary text-[0.7rem] font-semibold text-primary-foreground">
+            v
+          </span>
+          valoron
         </Link>
         <Link
           href="/"

@@ -81,31 +81,29 @@ export default async function LandingPage() {
       <SiteHeader isSignedIn={Boolean(user)} />
 
       <main className="flex-1">
-        {/* Hero: one serif sentence over the orb, two dots as the only controls. */}
-        <section className="relative flex min-h-svh flex-col items-center justify-center px-6 text-center">
-          <h1 className="font-serif text-4xl leading-[1.15] tracking-tight text-balance sm:text-5xl lg:text-6xl">
-            <RevealWords text="Money that proves itself." />
-          </h1>
-          <Reveal delay={0.3}>
-            <p className="mt-6 font-serif text-xl text-balance text-foreground/90 sm:text-2xl">
-              <Link href={primary.href} className="group inline-flex items-center gap-2 hover:text-primary">
-                {user ? 'Open your wallet' : 'Open a wallet'}
-                <span className="size-3 rounded-full bg-foreground transition-colors group-hover:bg-primary" />
-              </Link>{' '}
-              or{' '}
-              <Link href="#ledger" className="group inline-flex items-center gap-2 hover:text-primary">
-                see how the ledger works
-                <span className="size-3 rounded-full bg-foreground transition-colors group-hover:bg-primary" />
-              </Link>
-              .
-            </p>
-          </Reveal>
-          <p className="absolute bottom-8 left-6 max-w-xs text-left font-mono text-[0.7rem] leading-relaxed tracking-widest text-muted-foreground uppercase">
-            Double-entry ledger · Two-factor · Stripe payments
-          </p>
-          <p className="absolute right-6 bottom-8 hidden font-mono text-[0.7rem] tracking-widest text-muted-foreground uppercase sm:block">
-            Scroll ↓
-          </p>
+        {/* Hero: the stage does the talking; copy sits low and left. */}
+        <section className="relative flex min-h-svh flex-col justify-end px-6 pb-16 sm:pb-24">
+          <div className="mx-auto w-full max-w-6xl">
+            <h1 className="font-heading text-5xl leading-[1.05] font-light tracking-tight text-balance sm:text-7xl">
+              <RevealWords text="One wallet. A clear ledger. Complete proof." />
+            </h1>
+            <Reveal delay={0.3}>
+              <div className="mt-8 flex flex-col gap-6 sm:flex-row sm:items-center sm:gap-10">
+                <p className="max-w-sm text-sm leading-relaxed text-foreground/90">
+                  A USD wallet on an append-only double-entry ledger: transfers, card deposits and bank withdrawals,
+                  each one provable from its own history.
+                </p>
+                <Magnetic>
+                  <Link
+                    href={primary.href}
+                    className="inline-flex h-10 items-center rounded-md bg-primary px-5 font-mono text-xs tracking-widest text-primary-foreground uppercase transition-opacity hover:opacity-85"
+                  >
+                    {primary.label}
+                  </Link>
+                </Magnetic>
+              </div>
+            </Reveal>
+          </div>
         </section>
 
         <div className="bg-black/70 backdrop-blur-sm">
@@ -132,14 +130,14 @@ export default async function LandingPage() {
           {/* Closing */}
           <section className="mx-auto w-full max-w-6xl px-6 py-32 text-center">
             <Reveal>
-              <h2 className="mx-auto max-w-3xl font-serif text-4xl leading-tight tracking-tight text-balance sm:text-6xl">
-                Open your wallet in under a minute.
+              <h2 className="mx-auto max-w-3xl font-heading text-4xl leading-tight font-light tracking-tight text-balance sm:text-6xl">
+                One wallet, open in under a minute.
               </h2>
               <div className="mt-10 flex justify-center">
                 <Magnetic>
                   <Link
                     href={primary.href}
-                    className="inline-flex h-12 items-center gap-2 rounded-full bg-primary px-8 text-sm font-medium tracking-widest text-primary-foreground uppercase transition-opacity hover:opacity-85"
+                    className="inline-flex h-12 items-center gap-2 rounded-md bg-primary px-8 font-mono text-xs tracking-widest text-primary-foreground uppercase transition-opacity hover:opacity-85"
                   >
                     {primary.label}
                     <ArrowUpRight className="size-4" />
@@ -159,7 +157,7 @@ export default async function LandingPage() {
 function Stat({ value, label }: { value: React.ReactNode; label: string }) {
   return (
     <div>
-      <p className="font-serif text-7xl tracking-tight tabular-nums">{value}</p>
+      <p className="font-heading text-7xl font-light tracking-tight tabular-nums">{value}</p>
       <p className="mt-3 font-mono text-xs tracking-widest text-muted-foreground uppercase">{label}</p>
     </div>
   )

@@ -38,7 +38,7 @@ export default function LoginPage() {
   return (
     <div className="space-y-8">
       <div className="space-y-2">
-        <h1 className="font-serif text-4xl tracking-tight">Welcome back</h1>
+        <h1 className="font-heading font-light text-4xl tracking-tight">Welcome back</h1>
         <p className="text-sm text-muted-foreground">Log in to your Valoron wallet.</p>
       </div>
 

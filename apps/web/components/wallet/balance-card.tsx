@@ -10,7 +10,7 @@ export function BalanceCard({ balanceCents }: { balanceCents: number }) {
         <CardTitle className="font-mono text-xs tracking-widest text-muted-foreground uppercase">Balance</CardTitle>
       </CardHeader>
       <CardContent>
-        <p data-testid="balance-amount" className="font-serif text-6xl tracking-tight text-primary">
+        <p data-testid="balance-amount" className="font-heading font-light text-6xl tracking-tight text-primary">
           {formatCents(balanceCents)}
         </p>
         <div className="mt-6 flex flex-wrap gap-2">
