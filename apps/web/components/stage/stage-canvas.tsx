@@ -180,9 +180,26 @@ export function StageCanvas() {
       }
     }
 
-    start()
+    // Start only once the page has loaded and the browser is idle, so the
+    // heavy three.js import and first render never compete with hydration
+    // (a form clicked before hydration submits natively and reloads).
+    let idleHandle = 0
+    let timeoutHandle = 0
+    function schedule() {
+      if ('requestIdleCallback' in window) {
+        idleHandle = window.requestIdleCallback(() => start(), { timeout: 2500 })
+      } else {
+        timeoutHandle = window.setTimeout(start, 800)
+      }
+    }
+    if (document.readyState === 'complete') schedule()
+    else window.addEventListener('load', schedule, { once: true })
+
     return () => {
       disposed = true
+      window.removeEventListener('load', schedule)
+      if (idleHandle) window.cancelIdleCallback(idleHandle)
+      if (timeoutHandle) window.clearTimeout(timeoutHandle)
       cleanup?.()
     }
   }, [])
