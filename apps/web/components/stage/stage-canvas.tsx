@@ -73,7 +73,7 @@ export function StageCanvas() {
       // --- the slab ------------------------------------------------------
       // A rounded square slab: corner radius 12% of the side, thickness 6%,
       // with a small rounded bevel so the edges catch a thin line of light.
-      const SIDE = 0.6
+      const SIDE = 1.4
       const half = SIDE / 2
       const corner = SIDE * 0.12
       const outline = new THREE.Shape()
@@ -189,7 +189,7 @@ export function StageCanvas() {
 
       // --- a long chain of slabs on a ring -------------------------------
       // Spread over the whole viewport along a 3:2:1 Lissajous loop.
-      const COUNT = 40
+      const COUNT = 16
       const DEPTH = 3.2
       const plateGroup = new THREE.Group()
       const plates = new THREE.InstancedMesh(plateGeometry, plateMaterial, COUNT)
@@ -391,7 +391,7 @@ export function StageCanvas() {
         // Dim by darkening rather than fading: translucent plates would show
         // each other through themselves.
         uniforms.uDim.value = cur.plates
-        labelMaterial.color.setScalar(cur.plates * 0.75)
+        labelMaterial.color.setScalar(Math.min(1, cur.plates * 1.7))
 
         // The ring hangs over the top of the viewport and tips toward the
         // camera as you scroll, so the visible arc changes from a chain of
@@ -423,8 +423,8 @@ export function StageCanvas() {
             AY * Math.sin(2 * a) + Math.cos(drift * 0.19 + i * 2.3) * 0.5,
             DEPTH * Math.cos(a) + Math.sin(drift * 0.15 + i * 0.9) * 0.8,
           )
-          dummy.rotation.set(0.3 * Math.cos(flip * 0.7 + i), 0, i * 0.4)
-          dummy.rotateY(Math.sin(flip - i * 0.5) * 0.95)
+          dummy.rotation.set(0.12 * Math.cos(flip * 0.7 + i), 0, Math.sin(i * 1.3) * 0.15)
+          dummy.rotateY(Math.sin(flip - i * 0.5) * 0.35)
 
           // --- per-slab interaction ------------------------------------
           // Where this slab sits on screen, and how close the cursor is.
