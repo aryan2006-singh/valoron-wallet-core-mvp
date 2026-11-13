@@ -4,7 +4,13 @@ import { useEffect, useRef, useState } from 'react'
 import type * as THREE_NS from 'three'
 import { ProductPreview } from '@/components/marketing/product-preview'
 import { createCardFaceTexture } from '@/components/marketing/card-face-texture'
-import { createDataNodes, createGlassRing, createOrbitingCoins } from '@/components/marketing/scene-objects'
+import {
+  createDataNodes,
+  createGlassRing,
+  createOrbitingCoins,
+  createPanelFan,
+  createSilverSphere,
+} from '@/components/marketing/scene-objects'
 
 /**
  * Mouse-reactive 3D payment card for the hero.
@@ -84,7 +90,7 @@ export function HeroVisual() {
       bodyGeometry.center()
 
       const bodyMaterial = new THREE.MeshPhysicalMaterial({
-        color: 0x121216,
+        color: 0x0c0e0f,
         metalness: 0.95,
         roughness: 0.28,
         clearcoat: 1,
@@ -122,10 +128,10 @@ export function HeroVisual() {
       scene.add(key)
       // Two tinted rim lights: the colour only ever lands on the metal
       // edges, which is what sells "premium card" instead of "grey box".
-      const rimCool = new THREE.PointLight(0x8ab4ff, 40, 22)
+      const rimCool = new THREE.PointLight(0xdbffad, 6, 22)
       rimCool.position.set(4.5, -1.5, 2.5)
       scene.add(rimCool)
-      const rimWarm = new THREE.PointLight(0xffd9a8, 30, 22)
+      const rimWarm = new THREE.PointLight(0xc9d0d2, 30, 22)
       rimWarm.position.set(-4.5, -3, 2)
       scene.add(rimWarm)
       const topGlow = new THREE.PointLight(0xffffff, 18, 20)
@@ -158,6 +164,10 @@ export function HeroVisual() {
       scene.add(ring.mesh)
       const nodes = createDataNodes(THREE, 6)
       scene.add(nodes.group)
+      const sphere = createSilverSphere(THREE)
+      scene.add(sphere.group)
+      const fan = createPanelFan(THREE)
+      scene.add(fan.group)
 
       // --- interaction ---------------------------------------------------
       const pointer = { x: 0, y: 0 }
@@ -216,6 +226,11 @@ export function HeroVisual() {
         coins.update(t)
         ring.update(t)
         nodes.update(t)
+        sphere.update(t)
+        fan.update(t)
+        // Scroll parallax: orb drifts slower than the card, plates faster.
+        sphere.group.position.y = progress * 0.9
+        fan.group.position.y = progress * 1.6
 
         particles.rotation.y = t * 0.025
         particles.rotation.x = pointer.y * 0.05
@@ -246,6 +261,8 @@ export function HeroVisual() {
         coins.dispose()
         ring.dispose()
         nodes.dispose()
+        sphere.dispose()
+        fan.dispose()
       }
     }
 

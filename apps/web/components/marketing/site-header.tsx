@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { Wallet } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 const SECTIONS = [
@@ -17,11 +16,8 @@ export function SiteHeader({ isSignedIn }: { isSignedIn: boolean }) {
   return (
     <header className="sticky top-0 z-40 border-b bg-background/80 supports-backdrop-filter:backdrop-blur-md">
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-6 px-6">
-        <Link href="/" className="flex items-center gap-2 font-heading font-semibold tracking-tight">
-          <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Wallet className="size-4" />
-          </span>
-          Valoron
+        <Link href="/" className="flex items-center gap-2 text-lg font-medium tracking-tight">
+          valoron<span className="size-1.5 rounded-full bg-primary" />
         </Link>
 
         <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">

@@ -7,18 +7,18 @@ export function BalanceCard({ balanceCents }: { balanceCents: number }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-sm font-medium text-muted-foreground">Balance</CardTitle>
+        <CardTitle className="font-mono text-xs tracking-widest text-muted-foreground uppercase">Balance</CardTitle>
       </CardHeader>
       <CardContent>
-        <p data-testid="balance-amount" className="text-4xl font-semibold tracking-tight">
+        <p data-testid="balance-amount" className="font-serif text-6xl tracking-tight text-primary">
           {formatCents(balanceCents)}
         </p>
-        <div className="mt-4 flex gap-2">
+        <div className="mt-6 flex flex-wrap gap-2">
           {/* This project's Button (Base UI, not Radix) has no `asChild` —
               use its `render` prop with the target element instead. */}
-          <Button nativeButton={false} render={<Link href="/send">Send</Link>} size="sm" />
-          <Button nativeButton={false} render={<Link href="/deposit">Deposit</Link>} size="sm" variant="outline" />
-          <Button nativeButton={false} render={<Link href="/withdraw">Withdraw</Link>} size="sm" variant="outline" />
+          <Button nativeButton={false} render={<Link href="/send">Send</Link>} size="default" />
+          <Button nativeButton={false} render={<Link href="/deposit">Deposit</Link>} variant="outline" size="default" />
+          <Button nativeButton={false} render={<Link href="/withdraw">Withdraw</Link>} variant="outline" size="default" />
         </div>
       </CardContent>
     </Card>

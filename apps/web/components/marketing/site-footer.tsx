@@ -1,16 +1,12 @@
 import Link from 'next/link'
-import { Wallet } from 'lucide-react'
 
 export function SiteFooter() {
   return (
     <footer className="border-t">
       <div className="mx-auto grid w-full max-w-6xl gap-8 px-6 py-12 md:grid-cols-[2fr_1fr_1fr]">
         <div className="space-y-3">
-          <Link href="/" className="flex items-center gap-2 font-heading font-semibold tracking-tight">
-            <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Wallet className="size-4" />
-            </span>
-            Valoron
+          <Link href="/" className="flex items-center gap-2 text-lg font-medium tracking-tight">
+            valoron<span className="size-1.5 rounded-full bg-primary" />
           </Link>
           <p className="max-w-xs text-sm text-muted-foreground">
             A wallet built on an append-only double-entry ledger, so every balance can be proven, not just trusted.
