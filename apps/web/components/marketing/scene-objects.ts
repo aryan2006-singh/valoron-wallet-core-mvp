@@ -199,3 +199,97 @@ export function createDataNodes(THREE: typeof THREE_NS, count = 6): DataNodes {
 
   return { group, update, dispose }
 }
+
+export type SceneProp = {
+  group: THREE_NS.Group
+  update: (t: number) => void
+  dispose: () => void
+}
+
+/**
+ * Large matte silver sphere that slowly breathes behind the card — the
+ * moon-like orb from the digital-of-things reference. A canvas noise
+ * texture gives it the grainy, film-like surface.
+ */
+export function createSilverSphere(THREE: typeof THREE_NS): SceneProp {
+  const group = new THREE.Group()
+
+  const S = 256
+  const canvas = document.createElement('canvas')
+  canvas.width = S
+  canvas.height = S
+  const ctx = canvas.getContext('2d')!
+  const img = ctx.createImageData(S, S)
+  for (let i = 0; i < img.data.length; i += 4) {
+    const v = 150 + Math.random() * 70
+    img.data[i] = v
+    img.data[i + 1] = v
+    img.data[i + 2] = v
+    img.data[i + 3] = 255
+  }
+  ctx.putImageData(img, 0, 0)
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping
+  texture.repeat.set(3, 2)
+  texture.colorSpace = THREE.SRGBColorSpace
+
+  const geometry = new THREE.SphereGeometry(1.3, 96, 96)
+  const material = new THREE.MeshStandardMaterial({
+    map: texture,
+    color: 0xc9d0d2,
+    metalness: 0.15,
+    roughness: 0.9,
+  })
+  const mesh = new THREE.Mesh(geometry, material)
+  mesh.position.set(1.5, 0.35, -2.4)
+  group.add(mesh)
+
+  function update(t: number) {
+    mesh.rotation.y = t * 0.05
+    mesh.scale.setScalar(1 + Math.sin(t * 0.6) * 0.025)
+  }
+  function dispose() {
+    geometry.dispose()
+    material.dispose()
+    texture.dispose()
+  }
+  return { group, update, dispose }
+}
+
+/**
+ * A fan of thin chrome plates (the fragment.im reference) that flip and
+ * ripple in sequence along an arc across the top of the scene.
+ */
+export function createPanelFan(THREE: typeof THREE_NS, count = 9): SceneProp {
+  const group = new THREE.Group()
+  const geometry = new THREE.BoxGeometry(0.46, 0.46, 0.03)
+  const material = new THREE.MeshPhysicalMaterial({
+    color: 0xc9d0d2,
+    metalness: 1,
+    roughness: 0.16,
+    clearcoat: 1,
+    clearcoatRoughness: 0.08,
+  })
+  const plates: THREE_NS.Mesh[] = []
+  for (let i = 0; i < count; i++) {
+    const mesh = new THREE.Mesh(geometry, material)
+    group.add(mesh)
+    plates.push(mesh)
+  }
+
+  function update(t: number) {
+    plates.forEach((m, i) => {
+      const f = i / (count - 1)
+      const a = f * Math.PI * 0.95 + Math.PI * 0.03
+      m.position.set(-2.6 + f * 5.2, 1.05 + Math.sin(a) * 0.25 + Math.sin(t * 0.7 + i) * 0.06, -1 - Math.cos(a * 2) * 0.4)
+      m.rotation.y = 0.9 * Math.sin(t * 0.5 - i * 0.45) + (f - 0.5) * 1.2
+      m.rotation.x = 0.35 + Math.cos(t * 0.4 - i * 0.3) * 0.25
+      m.rotation.z = 0.5 + (f - 0.5) * 0.6
+    })
+  }
+  function dispose() {
+    geometry.dispose()
+    material.dispose()
+  }
+  return { group, update, dispose }
+}

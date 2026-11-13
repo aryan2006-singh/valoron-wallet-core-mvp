@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { AppHeader } from '@/components/layout/app-header'
 import { MobileTabBar } from '@/components/layout/mobile-tab-bar'
+import { Reveal } from '@/components/marketing/motion'
 import { SetupPrompts } from '@/components/layout/setup-prompts'
 
 /**
@@ -39,7 +40,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           the tab bar is hidden and the header's inline nav takes over. */}
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 pt-6 pb-24 md:px-6 md:pb-12">
         <SetupPrompts mfaEnabled={mfaEnabled} kycStatus={profile?.kyc_status ?? 'unverified'} />
-        {children}
+        <Reveal y={16}>{children}</Reveal>
       </main>
       <MobileTabBar />
     </div>
