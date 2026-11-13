@@ -9,11 +9,15 @@ if (typeof window !== 'undefined') {
 }
 
 /**
- * Every animation in this file is a no-op when the visitor has asked for
- * reduced motion. That is not optional polish — vestibular disorders make
- * large parallax and scroll-jacking genuinely painful, and an unreachable
- * page is worse than an unanimated one.
+ * By product decision these entrance animations run for every visitor,
+ * including those with reduced motion set: the owner wants the site to feel
+ * alive on every machine. They are short, play once and never scroll-jack.
+ * Content is rendered visible by default and GSAP only applies the hidden
+ * start state when it runs, so nothing is lost if JavaScript fails.
+ * Set ANIMATE_FOR_EVERYONE to false to honour the OS setting again.
  */
+const ANIMATE_FOR_EVERYONE = true
+
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)'
 
 function subscribeToReducedMotion(onChange: () => void) {
@@ -29,15 +33,23 @@ export function useReducedMotion(): boolean {
   return useSyncExternalStore(
     subscribeToReducedMotion,
     () => window.matchMedia(REDUCED_MOTION_QUERY).matches,
-    () => true // server snapshot — never animate during SSR/hydration
+    () => true // server snapshot: never animate during SSR/hydration
   )
 }
+
+/** True when the entrance animations below should be skipped. */
+function useSkipMotion(): boolean {
+  const reduced = useReducedMotion()
+  return reduced && !ANIMATE_FOR_EVERYONE
+}
+
+const START = 'top 85%'
 
 /** Fades and lifts its children into view as they enter the viewport. */
 export function Reveal({
   children,
   delay = 0,
-  y = 24,
+  y = 40,
   className,
 }: {
   children: ReactNode
@@ -46,31 +58,31 @@ export function Reveal({
   className?: string
 }) {
   const ref = useRef<HTMLDivElement>(null)
-  const reduced = useReducedMotion()
+  const skip = useSkipMotion()
 
   useEffect(() => {
     const el = ref.current
-    if (!el || reduced) return
+    if (!el || skip) return
 
     const ctx = gsap.context(() => {
       gsap.fromTo(
         el,
-        { opacity: 0, y },
+        { opacity: 0, y, filter: 'blur(6px)' },
         {
           opacity: 1,
           y: 0,
-          duration: 0.8,
+          filter: 'blur(0px)',
+          duration: 1.1,
           delay,
           ease: 'power3.out',
-          scrollTrigger: { trigger: el, start: 'top 85%', once: true },
+          clearProps: 'filter',
+          scrollTrigger: { trigger: el, start: START, once: true },
         }
       )
     })
     return () => ctx.revert()
-  }, [delay, y, reduced])
+  }, [delay, y, skip])
 
-  // Rendered visible by default; GSAP only takes over once we know motion
-  // is welcome, so content is never trapped at opacity 0.
   return (
     <div ref={ref} className={className}>
       {children}
@@ -93,7 +105,7 @@ export function CountUp({
   className?: string
 }) {
   const ref = useRef<HTMLSpanElement>(null)
-  const reduced = useReducedMotion()
+  const skip = useSkipMotion()
 
   const format = (v: number) =>
     `${prefix}${v.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}${suffix}`
@@ -101,7 +113,7 @@ export function CountUp({
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    if (reduced) {
+    if (skip) {
       el.textContent = format(to)
       return
     }
@@ -112,7 +124,7 @@ export function CountUp({
         value: to,
         duration: 1.6,
         ease: 'power2.out',
-        scrollTrigger: { trigger: el, start: 'top 90%', once: true },
+        scrollTrigger: { trigger: el, start: START, once: true },
         onUpdate: () => {
           el.textContent = format(counter.value)
         },
@@ -120,7 +132,7 @@ export function CountUp({
     })
     return () => ctx.revert()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [to, reduced, prefix, suffix, decimals])
+  }, [to, skip, prefix, suffix, decimals])
 
   return (
     <span ref={ref} className={className}>
@@ -135,11 +147,11 @@ export function CountUp({
  */
 export function Magnetic({ children, strength = 0.35 }: { children: ReactNode; strength?: number }) {
   const ref = useRef<HTMLDivElement>(null)
-  const reduced = useReducedMotion()
+  const skip = useSkipMotion()
 
   useEffect(() => {
     const el = ref.current
-    if (!el || reduced) return
+    if (!el || skip) return
     if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return
 
     const quickX = gsap.quickTo(el, 'x', { duration: 0.4, ease: 'power3.out' })
@@ -161,7 +173,7 @@ export function Magnetic({ children, strength = 0.35 }: { children: ReactNode; s
       el.removeEventListener('mousemove', onMove)
       el.removeEventListener('mouseleave', onLeave)
     }
-  }, [strength, reduced])
+  }, [strength, skip])
 
   return (
     <div ref={ref} className="inline-flex will-change-transform">
@@ -171,42 +183,51 @@ export function Magnetic({ children, strength = 0.35 }: { children: ReactNode; s
 }
 
 /**
- * Reveals a headline word by word, each word rising from behind a clipped
- * line. Splitting on words rather than characters keeps the text readable
- * to screen readers and to text search, and avoids the shredded look that
- * per-character animation gives long sentences.
+ * Reveals text word by word, each word rising from behind a clipped line
+ * (masked, y 110% to 0). Splitting on words rather than characters keeps
+ * the text readable to screen readers and search.
  */
-export function RevealWords({ text, className }: { text: string; className?: string }) {
+export function RevealWords({
+  text,
+  className,
+  stagger = 0.045,
+}: {
+  text: string
+  className?: string
+  stagger?: number
+}) {
   const ref = useRef<HTMLSpanElement>(null)
-  const reduced = useReducedMotion()
+  const skip = useSkipMotion()
 
   useEffect(() => {
     const el = ref.current
-    if (!el || reduced) return
+    if (!el || skip) return
 
     const ctx = gsap.context(() => {
       gsap.fromTo(
         el.querySelectorAll('[data-word] > span'),
-        { yPercent: 115 },
+        { yPercent: 110 },
         {
           yPercent: 0,
-          duration: 0.9,
-          stagger: 0.045,
-          ease: 'power4.out',
-          scrollTrigger: { trigger: el, start: 'top 90%', once: true },
+          duration: 1.1,
+          stagger,
+          ease: 'expo.out',
+          scrollTrigger: { trigger: el, start: START, once: true },
         }
       )
     })
     return () => ctx.revert()
-  }, [reduced])
+  }, [skip, stagger])
 
+  const words = text.split(' ')
   return (
     <span ref={ref} className={className}>
-      {text.split(' ').map((word, i) => (
-        <span key={`${word}-${i}`} data-word className="inline-block overflow-hidden align-bottom">
+      {words.map((word, i) => (
+        // pb/-mb keeps descenders (g, p, y) from being clipped by the mask.
+        <span key={`${word}-${i}`} data-word className="-mb-[0.12em] inline-block overflow-hidden pb-[0.12em] align-bottom">
           <span className="inline-block">
             {word}
-            {i < text.split(' ').length - 1 ? ' ' : ''}
+            {i < words.length - 1 ? ' ' : ''}
           </span>
         </span>
       ))}
@@ -217,28 +238,79 @@ export function RevealWords({ text, className }: { text: string; className?: str
 /** Staggers direct children of a grid/list into view. */
 export function RevealGroup({ children, className }: { children: ReactNode; className?: string }) {
   const ref = useRef<HTMLDivElement>(null)
-  const reduced = useReducedMotion()
+  const skip = useSkipMotion()
 
   useEffect(() => {
     const el = ref.current
-    if (!el || reduced) return
+    if (!el || skip) return
 
     const ctx = gsap.context(() => {
       gsap.fromTo(
         Array.from(el.children),
-        { opacity: 0, y: 28 },
+        { opacity: 0, y: 60, filter: 'blur(6px)' },
         {
           opacity: 1,
           y: 0,
-          duration: 0.7,
-          stagger: 0.08,
+          filter: 'blur(0px)',
+          duration: 1.1,
+          stagger: 0.1,
           ease: 'power3.out',
-          scrollTrigger: { trigger: el, start: 'top 85%', once: true },
+          clearProps: 'filter',
+          scrollTrigger: { trigger: el, start: START, once: true },
         }
       )
     })
     return () => ctx.revert()
-  }, [reduced])
+  }, [skip])
+
+  return (
+    <div ref={ref} className={className}>
+      {children}
+    </div>
+  )
+}
+
+/**
+ * Ruled list rows that build themselves as they scroll in. For each
+ * `[data-row]`: its hairline `[data-rule]` draws left to right, then its
+ * `[data-row-part]` children (index, title, description) rise ~60px from
+ * below, fading and sharpening from a slight blur, one after another.
+ * Each row triggers on its own, once, at 85% down the viewport.
+ */
+export function RevealRows({ children, className }: { children: ReactNode; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const skip = useSkipMotion()
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el || skip) return
+
+    const ctx = gsap.context(() => {
+      el.querySelectorAll<HTMLElement>('[data-row]').forEach((row) => {
+        const tl = gsap.timeline({ scrollTrigger: { trigger: row, start: START, once: true } })
+        tl.fromTo(
+          row.querySelectorAll('[data-rule]'),
+          { scaleX: 0, transformOrigin: '0% 50%' },
+          { scaleX: 1, duration: 1.2, ease: 'expo.out' }
+        )
+        tl.fromTo(
+          row.querySelectorAll('[data-row-part]'),
+          { y: 60, opacity: 0, filter: 'blur(8px)' },
+          {
+            y: 0,
+            opacity: 1,
+            filter: 'blur(0px)',
+            duration: 1.1,
+            stagger: 0.1,
+            ease: 'power3.out',
+            clearProps: 'filter',
+          },
+          0.12
+        )
+      })
+    })
+    return () => ctx.revert()
+  }, [skip])
 
   return (
     <div ref={ref} className={className}>

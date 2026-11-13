@@ -4,7 +4,7 @@ import { ArrowUpRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { SiteHeader } from '@/components/marketing/site-header'
 import { SiteFooter } from '@/components/marketing/site-footer'
-import { CountUp, Magnetic, Reveal, RevealGroup, RevealWords } from '@/components/marketing/motion'
+import { CountUp, Magnetic, Reveal, RevealGroup, RevealRows, RevealWords } from '@/components/marketing/motion'
 
 export const metadata: Metadata = {
   title: 'Valoron — A wallet with a ledger that proves itself',
@@ -109,13 +109,15 @@ export default async function LandingPage() {
         <div className="[text-shadow:0_1px_16px_rgb(0_0_0/0.9)]">
           {/* About + stats */}
           <section id="ledger" className="mx-auto w-full max-w-6xl scroll-mt-16 px-6 py-28">
-            <Reveal>
-              <span className="font-mono text-xs tracking-widest text-muted-foreground uppercase">About</span>
-              <p className="mt-6 max-w-4xl font-heading text-2xl leading-snug font-light tracking-tight text-balance sm:text-4xl">
-                Valoron is a USD wallet built on append-only double-entry accounting. Every balance can be rebuilt from
-                its own transaction history, so it is never a single number you have to take on faith.
-              </p>
-            </Reveal>
+            <span className="font-mono text-xs tracking-widest text-muted-foreground uppercase">
+              <RevealWords text="About" />
+            </span>
+            <p className="mt-6 max-w-4xl font-heading text-2xl leading-snug font-light tracking-tight text-balance sm:text-4xl">
+              <RevealWords
+                stagger={0.018}
+                text="Valoron is a USD wallet built on append-only double-entry accounting. Every balance can be rebuilt from its own transaction history, so it is never a single number you have to take on faith."
+              />
+            </p>
             <RevealGroup className="mt-20 grid gap-10 border-t pt-10 sm:grid-cols-3">
               <Stat value={<CountUp to={77} />} label="Automated tests on every change" />
               <Stat value={<CountUp to={100} suffix="%" />} label="Of balances derived from ledger history" />
@@ -129,10 +131,10 @@ export default async function LandingPage() {
 
           {/* Closing */}
           <section className="mx-auto w-full max-w-6xl px-6 py-32 text-center">
-            <Reveal>
-              <h2 className="mx-auto max-w-3xl font-heading text-4xl leading-tight font-light tracking-tight text-balance sm:text-6xl">
-                One wallet, open in under a minute.
-              </h2>
+            <h2 className="mx-auto max-w-3xl font-heading text-4xl leading-tight font-light tracking-tight text-balance sm:text-6xl">
+              <RevealWords text="One wallet, open in under a minute." />
+            </h2>
+            <Reveal delay={0.3}>
               <div className="mt-10 flex justify-center">
                 <Magnetic>
                   <Link
@@ -175,23 +177,34 @@ function Listing({
 }) {
   return (
     <section id={id} className="mx-auto w-full max-w-6xl scroll-mt-16 px-6 py-20">
-      <Reveal>
-        <span className="font-mono text-xs tracking-widest text-muted-foreground uppercase">{eyebrow}</span>
-      </Reveal>
-      <RevealGroup className="mt-8 border-t">
+      <span className="font-mono text-xs tracking-widest text-muted-foreground uppercase">
+        <RevealWords text={eyebrow} />
+      </span>
+      <RevealRows className="mt-8">
+        {/* Top rule draws in with the first row. */}
         {items.map(({ title, body }, i) => (
           <div
             key={title}
-            className="group grid gap-3 border-b py-8 transition-colors hover:bg-white/[0.03] md:grid-cols-[4rem_1.2fr_1fr] md:gap-8"
+            data-row
+            className="group relative grid gap-3 py-8 transition-colors hover:bg-white/[0.03] md:grid-cols-[4rem_1.2fr_1fr] md:gap-8"
           >
-            <span className="font-mono text-xs tracking-widest text-muted-foreground">{String(i + 1).padStart(2, '0')}</span>
-            <h3 className="font-heading text-2xl font-light tracking-tight transition-colors group-hover:text-primary sm:text-3xl">
+            {i === 0 && <span data-rule aria-hidden className="absolute inset-x-0 top-0 h-px bg-border" />}
+            <span data-rule aria-hidden className="absolute inset-x-0 bottom-0 h-px bg-border" />
+            <span data-row-part className="font-mono text-xs tracking-widest text-muted-foreground">
+              {String(i + 1).padStart(2, '0')}
+            </span>
+            <h3
+              data-row-part
+              className="font-heading text-2xl font-light tracking-tight transition-colors group-hover:text-primary sm:text-3xl"
+            >
               {title}
             </h3>
-            <p className="text-[15px] leading-relaxed font-medium text-foreground">{body}</p>
+            <p data-row-part className="text-[15px] leading-relaxed font-medium text-foreground">
+              {body}
+            </p>
           </div>
         ))}
-      </RevealGroup>
+      </RevealRows>
     </section>
   )
 }
