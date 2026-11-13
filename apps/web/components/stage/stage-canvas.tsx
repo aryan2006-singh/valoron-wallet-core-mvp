@@ -21,7 +21,7 @@ import type * as THREE_NS from 'three'
 type Pose = { plates: number; lift: number }
 
 function poseFor(path: string): Pose {
-  if (path === '/') return { plates: 1, lift: 0 }
+  if (path === '/') return { plates: 0.55, lift: 0 }
   if (path === '/login' || path === '/signup') return { plates: 0.4, lift: 1.0 }
   return { plates: 0.22, lift: 1.4 }
 }
@@ -73,7 +73,7 @@ export function StageCanvas() {
       // --- the slab ------------------------------------------------------
       // A rounded square slab: corner radius 12% of the side, thickness 6%,
       // with a small rounded bevel so the edges catch a thin line of light.
-      const SIDE = 0.92
+      const SIDE = 0.6
       const half = SIDE / 2
       const corner = SIDE * 0.12
       const outline = new THREE.Shape()
@@ -188,8 +188,9 @@ export function StageCanvas() {
       }
 
       // --- a long chain of slabs on a ring -------------------------------
-      const COUNT = 30
-      const RADIUS = 4.6
+      // Spread over the whole viewport along a 3:2:1 Lissajous loop.
+      const COUNT = 40
+      const DEPTH = 3.2
       const plateGroup = new THREE.Group()
       const plates = new THREE.InstancedMesh(plateGeometry, plateMaterial, COUNT)
       plates.castShadow = true
@@ -198,7 +199,6 @@ export function StageCanvas() {
       scene.add(plateGroup)
 
       const dummy = new THREE.Object3D()
-      const outward = new THREE.Vector3()
       const groupWorld = new THREE.Vector3()
 
       // --- light ----------------------------------------------------------
@@ -213,8 +213,8 @@ export function StageCanvas() {
       key.shadow.bias = -0.0004
       key.shadow.normalBias = 0.02
       const sc = key.shadow.camera
-      sc.left = sc.bottom = -7
-      sc.right = sc.top = 7
+      sc.left = sc.bottom = -10
+      sc.right = sc.top = 10
       sc.near = 1
       sc.far = 30
       scene.add(key)
@@ -343,13 +343,18 @@ export function StageCanvas() {
         // The ring hangs over the top of the viewport and tips toward the
         // camera as you scroll, so the visible arc changes from a chain of
         // faces to a fan of edges and back.
-        plateGroup.position.set(narrow ? 0 : 2.2, 2.3 + cur.lift, -1.5)
-        plateGroup.scale.setScalar(narrow ? 0.62 : 1)
+        const scale = narrow ? 0.7 : 1
+        plateGroup.position.set(0, 0, -1.5)
+        plateGroup.scale.setScalar(scale)
         plateGroup.rotation.set(
-          0.58 + Math.sin(shown * Math.PI * 2) * 0.06 + pointer.y * 0.04,
-          pointer.x * 0.06,
-          -0.18 + shown * 0.3,
+          Math.sin(shown * Math.PI * 2) * 0.08 + pointer.y * 0.06,
+          pointer.x * 0.1,
+          shown * 0.25,
         )
+        // Half the visible frustum at the group's depth, in group units.
+        const halfH = (Math.tan((camera.fov * Math.PI) / 360) * 11.5) / scale
+        const AX = halfH * camera.aspect * 0.95
+        const AY = halfH * 0.9
 
         // The chain walks 3/4 of the ring over the page plus a slow constant
         // crawl, and every plate keeps turning over.
@@ -360,12 +365,13 @@ export function StageCanvas() {
         const h = mount!.clientHeight
         for (let i = 0; i < COUNT; i++) {
           const a = i * STEP + travel
-          outward.set(Math.cos(a), 0, Math.sin(a))
-          dummy.position.copy(outward).multiplyScalar(RADIUS)
-          // Face outward from the ring, then spin about the chain's direction.
-          dummy.lookAt(dummy.position.x * 2, 0, dummy.position.z * 2)
-          dummy.rotateY(-0.45 + Math.sin(flip - i * 0.12) * 0.95)
-          dummy.rotateX(0.18)
+          dummy.position.set(
+            AX * Math.sin(3 * a + 0.4) + Math.sin(drift * 0.23 + i * 1.7) * 0.6,
+            AY * Math.sin(2 * a) + Math.cos(drift * 0.19 + i * 2.3) * 0.5,
+            DEPTH * Math.cos(a) + Math.sin(drift * 0.15 + i * 0.9) * 0.8,
+          )
+          dummy.rotation.set(0.3 * Math.cos(flip * 0.7 + i), 0, i * 0.4)
+          dummy.rotateY(Math.sin(flip - i * 0.5) * 0.95)
 
           // --- per-slab interaction ------------------------------------
           // Where this slab sits on screen, and how close the cursor is.
@@ -417,7 +423,7 @@ export function StageCanvas() {
         // Depth gradient spans the ring: nearest slab pale, farthest dark.
         plateGroup.getWorldPosition(groupWorld)
         const centre = camera.position.distanceTo(groupWorld)
-        const r = RADIUS * plateGroup.scale.x
+        const r = DEPTH * plateGroup.scale.x
         uniforms.uNear.value = centre - r
         uniforms.uFar.value = centre + r
         key.target.position.copy(groupWorld)
