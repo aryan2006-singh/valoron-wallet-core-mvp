@@ -213,8 +213,8 @@ export function StageCanvas() {
 
         // The chain walks 3/4 of the ring over the page plus a slow constant
         // crawl, and every plate keeps turning over.
-        const travel = shown * Math.PI * 2 * 0.75 + drift * 0.07
-        const flip = shown * Math.PI * 1.6 + drift * 0.35
+        const travel = shown * Math.PI * 2 * 0.75 + drift * 0.2
+        const flip = shown * Math.PI * 1.6 + drift * 0.7
         for (let i = 0; i < COUNT; i++) {
           const a = i * STEP + travel
           outward.set(Math.cos(a), 0, Math.sin(a))
