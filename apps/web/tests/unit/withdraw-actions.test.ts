@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from 'vitest'
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }))
 vi.mock('@/lib/stripe/client', () => ({ stripe: { payouts: { create: vi.fn() } } }))
 vi.mock('@/lib/auth/mfa', () => ({ requireVerifiedMfa: vi.fn() }))
+vi.mock('@/lib/supabase/withdrawal-reversal', () => ({ reverseFailedWithdrawal: vi.fn() }))
 vi.mock('@/lib/rate-limit', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/rate-limit')>()
   return { ...actual, enforceRateLimit: vi.fn().mockResolvedValue(true) }
@@ -11,6 +12,7 @@ vi.mock('@/lib/rate-limit', async (importOriginal) => {
 import { createClient } from '@/lib/supabase/server'
 import { stripe } from '@/lib/stripe/client'
 import { requireVerifiedMfa } from '@/lib/auth/mfa'
+import { reverseFailedWithdrawal } from '@/lib/supabase/withdrawal-reversal'
 import { requestWithdrawal } from '@/app/(app)/withdraw/actions'
 
 function mockSupabase(rpc: (fn: string, args: unknown) => Promise<{ data: unknown; error: unknown }>) {
@@ -20,6 +22,7 @@ function mockSupabase(rpc: (fn: string, args: unknown) => Promise<{ data: unknow
 const mockedCreateClient = vi.mocked(createClient)
 const mockedRequireVerifiedMfa = vi.mocked(requireVerifiedMfa)
 const mockedCreatePayout = vi.mocked(stripe.payouts.create)
+const mockedReverse = vi.mocked(reverseFailedWithdrawal)
 
 describe('requestWithdrawal', () => {
   it('returns an error when MFA is not verified', async () => {
@@ -42,18 +45,22 @@ describe('requestWithdrawal', () => {
     expect(await requestWithdrawal(2000)).toEqual({ status: 'pending' })
   })
 
-  it('reverses the ledger debit and returns an error if the payout call fails', async () => {
+  it('reverses the ledger debit via the service-role helper and returns an error if the payout call fails', async () => {
     mockedRequireVerifiedMfa.mockResolvedValue({ ok: true, userId: 'u1' })
     const rpc = vi.fn(async (fn: string) => {
       if (fn === 'record_withdrawal') return { data: { transaction_id: 'txn-2', status: 'pending' }, error: null }
-      if (fn === 'reverse_withdrawal') return { data: { status: 'reversed' }, error: null }
       return { data: null, error: null }
     })
     mockedCreateClient.mockResolvedValue(mockSupabase(rpc) as unknown as Awaited<ReturnType<typeof createClient>>)
     mockedCreatePayout.mockRejectedValue(new Error('card_declined'))
+    mockedReverse.mockResolvedValue({ data: { status: 'reversed' }, error: null } as unknown as Awaited<
+      ReturnType<typeof reverseFailedWithdrawal>
+    >)
 
     const result = await requestWithdrawal(2000)
     expect(result).toHaveProperty('error')
-    expect(rpc).toHaveBeenCalledWith('reverse_withdrawal', expect.objectContaining({ p_transaction_id: 'txn-2' }))
+    expect(mockedReverse).toHaveBeenCalledWith('txn-2', 'card_declined')
+    // Never through the user's own session: that path is revoked.
+    expect(rpc).not.toHaveBeenCalledWith('reverse_withdrawal', expect.anything())
   })
 })

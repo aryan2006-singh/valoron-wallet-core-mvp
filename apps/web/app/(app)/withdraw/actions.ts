@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { reverseFailedWithdrawal } from '@/lib/supabase/withdrawal-reversal'
 import { stripe } from '@/lib/stripe/client'
 import { withdrawalSchema } from '@/lib/validation/wallet'
 import { withdrawalRateLimit, enforceRateLimit } from '@/lib/rate-limit'
@@ -41,7 +42,7 @@ export async function requestWithdrawal(
   }
 
   const supabase = await createClient()
-  const idempotencyKey = `withdrawal-${mfa.userId}-${Date.now()}`
+  const idempotencyKey = `withdrawal-${crypto.randomUUID()}`
 
   withdrawLog.info(
     { userId: mfa.userId, amountCents: parsed.data.amountCents, idempotencyKey },
@@ -81,20 +82,18 @@ export async function requestWithdrawal(
       'withdrawal payout created'
     )
   } catch (payoutError) {
-    // The ledger was already debited by record_withdrawal above; the RPC
-    // grants authenticated users permission to reverse their own
-    // still-pending withdrawal (see Task 6), so this runs in the user's
-    // own session — no admin client involved.
+    // The ledger was already debited by record_withdrawal above. The
+    // reversal runs as service_role through a single-purpose helper:
+    // reverse_withdrawal is deliberately NOT callable from the user's own
+    // session, or a user could reverse a withdrawal whose payout had
+    // already been sent (see lib/supabase/withdrawal-reversal.ts).
     const reason = payoutError instanceof Error ? payoutError.message : 'payout_creation_failed'
     withdrawLog.error(
       { userId: mfa.userId, amountCents: parsed.data.amountCents, transactionId: result.transaction_id, reason },
       'withdrawal payout failed, reversing ledger debit'
     )
 
-    const { error: reverseError } = await supabase.rpc('reverse_withdrawal', {
-      p_transaction_id: result.transaction_id,
-      p_reason: reason,
-    })
+    const { error: reverseError } = await reverseFailedWithdrawal(result.transaction_id, reason)
     if (reverseError) {
       // A failed reversal means money is debited with no payout behind
       // it. That needs a human, so it is logged at fatal.

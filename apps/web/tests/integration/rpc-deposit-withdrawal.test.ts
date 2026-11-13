@@ -103,7 +103,7 @@ describe('record_withdrawal / confirm_withdrawal / reverse_withdrawal RPCs', () 
     expect(entries?.[0].balance_after_cents).toBe(10000)
   })
 
-  it('lets a user reverse (cancel) their own pending withdrawal directly', async () => {
+  it('does not let a user reverse their own pending withdrawal directly (service_role only)', async () => {
     const user = await createVerifiedUser('self-canceller')
     await admin.from('profiles').update({ kyc_status: 'verified' }).eq('id', user.userId)
     await fundAccount(user.accountId, 10000)
@@ -113,12 +113,14 @@ describe('record_withdrawal / confirm_withdrawal / reverse_withdrawal RPCs', () 
       p_idempotency_key: `withdraw-${Date.now()}`,
     })
 
-    const { data: reversed, error } = await user.client.rpc('reverse_withdrawal', {
+    // A pending withdrawal may already have a payout in flight, so letting
+    // the user reverse it would let them keep both. See
+    // 20261112190000_backend_hardening.sql.
+    const { error } = await user.client.rpc('reverse_withdrawal', {
       p_transaction_id: withdrawal.transaction_id,
       p_reason: 'user_cancelled',
     })
-    expect(error).toBeNull()
-    expect(reversed.status).toBe('reversed')
+    expect(error).not.toBeNull()
   })
 
   it('blocks a user from reversing someone else\'s pending withdrawal', async () => {
