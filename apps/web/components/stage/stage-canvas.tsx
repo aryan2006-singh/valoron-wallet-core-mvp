@@ -196,6 +196,58 @@ export function StageCanvas() {
       plates.castShadow = true
       plates.receiveShadow = true
       plateGroup.add(plates)
+
+      // --- card text on each slab's front face ----------------------------
+      // One shared texture for every slab, drawn in the site's fonts.
+      const cssVar = (n: string) =>
+        getComputedStyle(document.body).getPropertyValue(n).trim() ||
+        getComputedStyle(document.documentElement).getPropertyValue(n).trim()
+      const sans = `${cssVar('--font-inter-tight') || 'ui-sans-serif'}, system-ui, sans-serif`
+      const mono = `${cssVar('--font-geist-mono') || 'ui-monospace'}, monospace`
+      await document.fonts.ready
+      if (disposed) return
+      const labelCanvas = document.createElement('canvas')
+      labelCanvas.width = labelCanvas.height = 1024
+      const lc = labelCanvas.getContext('2d')!
+      lc.scale(2, 2)
+      const text = (t: string, x: number, y: number, font: string, alpha: number, spacing = 0) => {
+        lc.globalAlpha = alpha
+        lc.font = font
+        lc.letterSpacing = `${spacing}px`
+        lc.fillText(t, x, y)
+      }
+      lc.fillStyle = '#eef0f2'
+      text('VALORON', 40, 78, `500 24px ${mono}`, 0.9, 4)
+      text('Available balance', 40, 190, `400 22px ${sans}`, 0.6)
+      text('$2,480.00', 36, 262, `300 72px ${sans}`, 0.95, -2)
+      lc.globalAlpha = 0.25
+      lc.fillRect(40, 300, 432, 1)
+      lc.globalAlpha = 0.8
+      lc.strokeStyle = '#eef0f2'
+      lc.lineWidth = 2
+      lc.beginPath()
+      lc.moveTo(42, 336)
+      lc.lineTo(49, 343)
+      lc.lineTo(62, 328)
+      lc.stroke()
+      text('Reconstructed from 1,204 ledger entries', 74, 343, `400 18px ${sans}`, 0.7)
+      text('ACCOUNT HOLDER', 40, 418, `500 13px ${mono}`, 0.45, 2)
+      text('A. SINGH', 40, 448, `500 22px ${sans}`, 0.9)
+      text('MEMBER SINCE', 290, 418, `500 13px ${mono}`, 0.45, 2)
+      text('2026', 290, 448, `500 22px ${sans}`, 0.9)
+      const labelTexture = new THREE.CanvasTexture(labelCanvas)
+      labelTexture.colorSpace = THREE.SRGBColorSpace
+      labelTexture.anisotropy = renderer.capabilities.getMaxAnisotropy()
+      const labelGeometry = new THREE.PlaneGeometry(SIDE * 0.9, SIDE * 0.9)
+      labelGeometry.translate(0, 0, SIDE * 0.03 + 0.002)
+      const labelMaterial = new THREE.MeshBasicMaterial({
+        map: labelTexture,
+        transparent: true,
+        depthWrite: false,
+        toneMapped: false,
+      })
+      const labels = new THREE.InstancedMesh(labelGeometry, labelMaterial, COUNT)
+      plateGroup.add(labels)
       scene.add(plateGroup)
 
       const dummy = new THREE.Object3D()
@@ -339,6 +391,7 @@ export function StageCanvas() {
         // Dim by darkening rather than fading: translucent plates would show
         // each other through themselves.
         uniforms.uDim.value = cur.plates
+        labelMaterial.color.setScalar(cur.plates * 0.75)
 
         // The ring hangs over the top of the viewport and tips toward the
         // camera as you scroll, so the visible arc changes from a chain of
@@ -416,8 +469,10 @@ export function StageCanvas() {
 
           dummy.updateMatrix()
           plates.setMatrixAt(i, dummy.matrix)
+          labels.setMatrixAt(i, dummy.matrix)
         }
         plates.instanceMatrix.needsUpdate = true
+        labels.instanceMatrix.needsUpdate = true
         glowAttr.needsUpdate = true
 
         // Depth gradient spans the ring: nearest slab pale, farthest dark.
@@ -456,6 +511,9 @@ export function StageCanvas() {
         renderer.domElement.remove()
         plateGeometry.dispose()
         plateMaterial.dispose()
+        labelGeometry.dispose()
+        labelMaterial.dispose()
+        labelTexture.dispose()
         matcap.dispose()
         bloom.dispose()
         composer.dispose()
