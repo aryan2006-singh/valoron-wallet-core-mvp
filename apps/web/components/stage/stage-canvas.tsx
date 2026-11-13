@@ -13,8 +13,9 @@ import type * as THREE_NS from 'three'
  *
  * Three.js is imported dynamically so the page paints as plain black first.
  * The loop pauses when the tab is hidden. The plates drift continuously
- * and scrolling the page drives them further; visitors who prefer reduced
- * motion get no continuous drift, no smoothing and no pointer lean.
+ * and scrolling the page drives them further. By product decision the
+ * motion runs for every visitor, including those with reduced motion set:
+ * it is a slow ambient brand backdrop, like a looping logo animation.
  */
 
 type Pose = { plates: number; lift: number }
@@ -42,7 +43,6 @@ export function StageCanvas() {
 
     async function start() {
       const THREE = await import('three')
-      const { RoomEnvironment } = await import('three/examples/jsm/environments/RoomEnvironment.js')
       const { RoundedBoxGeometry } = await import('three/examples/jsm/geometries/RoundedBoxGeometry.js')
       if (disposed || !mount) return
 
@@ -52,7 +52,6 @@ export function StageCanvas() {
       } catch {
         return // no WebGL: the page stays plain black
       }
-      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
       renderer.setSize(mount.clientWidth, mount.clientHeight)
       renderer.toneMapping = THREE.ACESFilmicToneMapping
@@ -61,12 +60,41 @@ export function StageCanvas() {
 
       const scene = new THREE.Scene()
       const pmrem = new THREE.PMREMGenerator(renderer)
-      const envTexture = pmrem.fromScene(new RoomEnvironment(), 0.04).texture
+      // A black studio with a few bright softbox strips. Reflected in
+      // polished metal this gives the fragment.im look: mostly black faces
+      // crossed by white light sweeps, and hot white bevelled edges.
+      const studio = new THREE.Scene()
+      studio.background = new THREE.Color(0x000000)
+      const boxGeo = new THREE.PlaneGeometry(1, 1)
+      const softbox = (w: number, h: number, x: number, y: number, z: number, power: number) => {
+        const mat = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide })
+        mat.color.setScalar(power)
+        const m = new THREE.Mesh(boxGeo, mat)
+        m.scale.set(w, h, 1)
+        m.position.set(x, y, z)
+        m.lookAt(0, 0, 0)
+        studio.add(m)
+      }
+      // Faint grey dome so faces never fall to pure black.
+      const dome = new THREE.Mesh(
+        new THREE.SphereGeometry(30, 32, 16),
+        new THREE.MeshBasicMaterial({ color: 0x3b4144, side: THREE.BackSide }),
+      )
+      studio.add(dome)
+      softbox(30, 12, 0, 10, 5, 5) // wide panel overhead
+      softbox(10, 20, -11, 0, 6, 3) // tall panel on the left
+      softbox(9, 9, 10, 4, -7, 4.5) // hot kicker behind right
+      softbox(18, 4, 0, -9, 8, 0.9) // soft floor bounce
+      softbox(6, 6, 9, -2, 9, 1.6) // small front-right fill
+      const envTexture = pmrem.fromScene(studio, 0.02).texture
+      boxGeo.dispose()
+      dome.geometry.dispose()
+      ;(dome.material as THREE_NS.Material).dispose()
       scene.environment = envTexture
       scene.environmentIntensity = 1
 
       const camera = new THREE.PerspectiveCamera(32, mount.clientWidth / mount.clientHeight, 0.1, 100)
-      camera.position.set(0, 0, 9)
+      camera.position.set(0, 0, 10)
 
       // --- a long chain of chrome plates on a ring ----------------------
       // Like fragment.im, the motion is driven by the scroll position of the
@@ -74,12 +102,13 @@ export function StageCanvas() {
       // the chain around the ring and flips every plate from face-on to
       // edge-on and back, so each part of the page shows a different shape.
       const COUNT = 30
-      const RADIUS = 6.4
-      const plateGeometry = new RoundedBoxGeometry(1.7, 1.7, 0.07, 5, 0.16)
+      const RADIUS = 7.2
+      // Big, chunky, square plates with generous rounded bevels.
+      const plateGeometry = new RoundedBoxGeometry(2.3, 2.3, 0.18, 6, 0.09)
       const plateMaterial = new THREE.MeshPhysicalMaterial({
         color: 0xffffff,
         metalness: 1,
-        roughness: 0.12,
+        roughness: 0.07,
         clearcoat: 1,
         clearcoatRoughness: 0.04,
         envMapIntensity: 1.8,
@@ -90,8 +119,8 @@ export function StageCanvas() {
       scene.add(plateGroup)
 
       // Silver at one end of the chain fading to graphite at the other.
-      const bright = new THREE.Color(0xf2f5f6)
-      const dark = new THREE.Color(0x7c8488)
+      const bright = new THREE.Color(0xffffff)
+      const dark = new THREE.Color(0x9aa2a6)
       const shade = new THREE.Color()
       for (let i = 0; i < COUNT; i++) {
         shade.copy(bright).lerp(dark, Math.pow(i / (COUNT - 1), 0.8))
@@ -103,10 +132,10 @@ export function StageCanvas() {
       const outward = new THREE.Vector3()
 
       // --- light: soft white key from the upper left, hard rim behind -----
-      const key = new THREE.DirectionalLight(0xffffff, 1.6)
+      const key = new THREE.DirectionalLight(0xffffff, 0.6)
       key.position.set(-5, 5, 5)
       scene.add(key)
-      const rim = new THREE.DirectionalLight(0xffffff, 4)
+      const rim = new THREE.DirectionalLight(0xffffff, 2.5)
       rim.position.set(4, 6, -8)
       scene.add(rim)
       scene.add(new THREE.AmbientLight(0xffffff, 0.05))
@@ -118,7 +147,6 @@ export function StageCanvas() {
       let progress = 0
       let shown = 0
       const onMove = (e: PointerEvent) => {
-        if (reduced) return
         pointer.tx = (e.clientX / window.innerWidth) * 2 - 1
         pointer.ty = (e.clientY / window.innerHeight) * 2 - 1
       }
@@ -143,7 +171,7 @@ export function StageCanvas() {
 
       let frame = 0
       // Continuous drift so the backdrop is always alive, even when nobody
-      // scrolls. Scrolling adds to it. Off for reduced-motion visitors.
+      // scrolls. Scrolling adds to it.
       const startedAt = performance.now()
       let lastAt = startedAt
       let drift = 0
@@ -158,10 +186,10 @@ export function StageCanvas() {
         pointer.y = lerp(pointer.y, pointer.ty, 0.05)
         // Near-instant follow: just enough to smooth wheel steps, not the
         // floaty lag of a slow ease.
-        shown = lerp(shown, progress, reduced ? 1 : 0.2)
+        shown = lerp(shown, progress, 0.2)
         const now = performance.now()
         // Clamp the step so a backgrounded tab does not jump on return.
-        if (!reduced) drift += Math.min((now - lastAt) / 1000, 0.05)
+        drift += Math.min((now - lastAt) / 1000, 0.05)
         lastAt = now
 
         const narrow = camera.aspect < 1 // phones: centre the ring, scale it down
@@ -175,7 +203,7 @@ export function StageCanvas() {
         // The ring hangs over the top of the viewport and tips toward the
         // camera as you scroll, so the visible arc changes from a chain of
         // faces to a fan of edges and back.
-        plateGroup.position.set(narrow ? 0 : 1.4, 4.6 + cur.lift, -4)
+        plateGroup.position.set(narrow ? 0 : 1.2, 4.5 + cur.lift, -3.6)
         plateGroup.scale.setScalar(narrow ? 0.62 : 1)
         plateGroup.rotation.set(
           0.58 + Math.sin(shown * Math.PI * 2) * 0.06 + pointer.y * 0.04,
@@ -193,7 +221,7 @@ export function StageCanvas() {
           dummy.position.copy(outward).multiplyScalar(RADIUS)
           // Face outward from the ring, then spin about the chain's direction.
           dummy.lookAt(dummy.position.x * 2, 0, dummy.position.z * 2)
-          dummy.rotateY(Math.PI / 2 - 0.35 + Math.sin(flip - i * 0.12) * 1.1)
+          dummy.rotateY(-0.45 + Math.sin(flip - i * 0.12) * 0.95)
           dummy.rotateX(0.18)
           dummy.updateMatrix()
           plates.setMatrixAt(i, dummy.matrix)
