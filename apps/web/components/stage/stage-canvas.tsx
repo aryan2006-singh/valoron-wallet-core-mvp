@@ -12,9 +12,9 @@ import type * as THREE_NS from 'three'
  * rebuilding it.
  *
  * Three.js is imported dynamically so the page paints as plain black first.
- * The loop pauses when the tab is hidden. Motion comes only from the page
- * scroll position (no idle animation); visitors who prefer reduced motion
- * get no smoothing and no pointer lean.
+ * The loop pauses when the tab is hidden. The plates drift continuously
+ * and scrolling the page drives them further; visitors who prefer reduced
+ * motion get no continuous drift, no smoothing and no pointer lean.
  */
 
 type Pose = { plates: number; lift: number }
@@ -142,6 +142,11 @@ export function StageCanvas() {
       window.addEventListener('resize', onResize)
 
       let frame = 0
+      // Continuous drift so the backdrop is always alive, even when nobody
+      // scrolls. Scrolling adds to it. Off for reduced-motion visitors.
+      const startedAt = performance.now()
+      let lastAt = startedAt
+      let drift = 0
       const lerp = (a: number, b: number, k: number) => a + (b - a) * k
       const STEP = (Math.PI * 2) / COUNT
 
@@ -154,6 +159,10 @@ export function StageCanvas() {
         // Near-instant follow: just enough to smooth wheel steps, not the
         // floaty lag of a slow ease.
         shown = lerp(shown, progress, reduced ? 1 : 0.2)
+        const now = performance.now()
+        // Clamp the step so a backgrounded tab does not jump on return.
+        if (!reduced) drift += Math.min((now - lastAt) / 1000, 0.05)
+        lastAt = now
 
         const narrow = camera.aspect < 1 // phones: centre the ring, scale it down
 
@@ -174,8 +183,10 @@ export function StageCanvas() {
           -0.18 + shown * 0.3,
         )
 
-        const travel = shown * Math.PI * 2 * 0.75 // the chain walks 3/4 of the ring
-        const flip = shown * Math.PI * 1.6 // and every plate turns ~1.6 half-turns
+        // The chain walks 3/4 of the ring over the page plus a slow constant
+        // crawl, and every plate keeps turning over.
+        const travel = shown * Math.PI * 2 * 0.75 + drift * 0.07
+        const flip = shown * Math.PI * 1.6 + drift * 0.35
         for (let i = 0; i < COUNT; i++) {
           const a = i * STEP + travel
           outward.set(Math.cos(a), 0, Math.sin(a))
