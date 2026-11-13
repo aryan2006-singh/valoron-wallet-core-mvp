@@ -35,7 +35,9 @@ export async function middleware(request: NextRequest) {
   }
 
   const isPublic =
-    PUBLIC_PATHS.includes(request.nextUrl.pathname) || request.nextUrl.pathname.startsWith('/api/webhooks')
+    PUBLIC_PATHS.includes(request.nextUrl.pathname) || request.nextUrl.pathname.startsWith('/api/webhooks') ||
+    // Authenticated by its own bearer secret, not a user session.
+    request.nextUrl.pathname.startsWith('/api/n8n/')
 
   if (!user && !isPublic) {
     return NextResponse.redirect(new URL('/login', request.url))

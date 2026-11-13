@@ -44,3 +44,28 @@ describe('sendMoney', () => {
     expect(await sendMoney('friend@example.com', 1000)).toEqual({ status: 'completed' })
   })
 })
+
+describe('sendMoney with a note', () => {
+  it('passes the trimmed note and a keyword category to transfer_funds', async () => {
+    mockedRequireVerifiedMfa.mockResolvedValue({ ok: true, userId: 'u1' })
+    const rpc = vi.fn(async (fn: string, _args: unknown) => {
+      if (fn === 'find_recipient_account') return { data: 'acct-2', error: null }
+      if (fn === 'transfer_funds') return { data: { transaction_id: 'txn-1', status: 'completed' }, error: null }
+      return { data: null, error: null }
+    })
+    mockedCreateClient.mockResolvedValue(mockSupabase(rpc) as unknown as Awaited<ReturnType<typeof createClient>>)
+
+    expect(await sendMoney('friend@example.com', 2500, '  Pizza dinner  ')).toEqual({ status: 'completed' })
+    expect(rpc).toHaveBeenCalledWith(
+      'transfer_funds',
+      expect.objectContaining({ p_note: 'Pizza dinner', p_category: 'food' })
+    )
+  })
+
+  it('rejects a note over 140 characters before touching the database', async () => {
+    const rpc = vi.fn()
+    mockedCreateClient.mockResolvedValue(mockSupabase(rpc) as unknown as Awaited<ReturnType<typeof createClient>>)
+    expect(await sendMoney('friend@example.com', 2500, 'x'.repeat(141))).toHaveProperty('error')
+    expect(rpc).not.toHaveBeenCalled()
+  })
+})

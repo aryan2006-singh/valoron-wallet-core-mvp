@@ -4,7 +4,8 @@ import type { Database } from '@/types/supabase'
 /**
  * SECURITY: This client uses the service-role key and bypasses ALL Row
  * Level Security. Per the project's security baseline, it must be
- * imported ONLY from app/api/webhooks/stripe/route.ts. Do not import
+ * imported ONLY from app/api/webhooks/stripe/route.ts and
+ * app/api/n8n/weekly-insights/route.ts (secret-gated). Do not import
  * this from any page, component, or other server action.
  */
 export function createAdminClient() {

@@ -5,6 +5,8 @@ import { transferSchema } from '@/lib/validation/wallet'
 import { transferRateLimit, enforceRateLimit } from '@/lib/rate-limit'
 import { requireVerifiedMfa } from '@/lib/auth/mfa'
 import { logger, maskEmail } from '@/lib/logger'
+import { categorizeNote } from '@/lib/ai/categories'
+import { emitN8nEvent } from '@/lib/n8n'
 
 // Money movement is logged at every decision point, not just on success:
 // a refused transfer is exactly as interesting as a completed one when
@@ -13,9 +15,10 @@ const transferLog = logger.child({ area: 'transfer' })
 
 export async function sendMoney(
   recipientEmail: string,
-  amountCents: number
+  amountCents: number,
+  note?: string
 ): Promise<{ status: 'completed' } | { error: string }> {
-  const parsed = transferSchema.safeParse({ recipientEmail, amountCents })
+  const parsed = transferSchema.safeParse({ recipientEmail, amountCents, note })
   if (!parsed.success) {
     transferLog.info({ amountCents, reason: parsed.error.issues[0].message }, 'transfer rejected: validation failed')
     return { error: parsed.error.issues[0].message }
@@ -50,6 +53,8 @@ export async function sendMoney(
   }
 
   const idempotencyKey = `transfer-${mfa.userId}-${Date.now()}`
+  const transferNote = parsed.data.note || null
+  const category = categorizeNote(transferNote)
   transferLog.info(
     { userId: mfa.userId, recipient, amountCents: parsed.data.amountCents, idempotencyKey },
     'transfer initiated'
@@ -59,6 +64,8 @@ export async function sendMoney(
     p_recipient_account_id: recipientAccountId,
     p_amount_cents: parsed.data.amountCents,
     p_idempotency_key: idempotencyKey,
+    p_note: transferNote,
+    p_category: category,
   })
   if (error) {
     transferLog.error(
@@ -69,8 +76,19 @@ export async function sendMoney(
   }
 
   transferLog.info(
-    { userId: mfa.userId, recipient, amountCents: parsed.data.amountCents, idempotencyKey },
+    { userId: mfa.userId, recipient, amountCents: parsed.data.amountCents, idempotencyKey, category },
     'transfer completed'
   )
+
+  // Fire-and-forget: n8n automations (alerts, digests) must never slow down
+  // or fail a transfer that has already committed.
+  void emitN8nEvent('transfer.completed', {
+    userId: mfa.userId,
+    userEmail: mfa.email ?? null,
+    recipient,
+    amountCents: parsed.data.amountCents,
+    note: transferNote,
+    category,
+  })
   return { status: 'completed' }
 }

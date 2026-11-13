@@ -11,11 +11,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 export default function SendMoneyPage() {
   const [email, setEmail] = useState('')
   const [amount, setAmount] = useState('')
+  const [note, setNote] = useState('')
   const [sentOptimistically, setSentOptimistically] = useState(false)
 
   async function handleSubmit() {
     const amountCents = Math.round(parseFloat(amount) * 100)
-    const parsed = transferSchema.safeParse({ recipientEmail: email, amountCents })
+    const parsed = transferSchema.safeParse({ recipientEmail: email, amountCents, note })
     if (!parsed.success) {
       toast.add({ type: 'error', title: 'Could not send', description: parsed.error.issues[0].message })
       return
@@ -25,7 +26,7 @@ export default function SendMoneyPage() {
     // the round trip. If the server rejects it, roll back to the form and
     // surface exactly why via a toast.
     setSentOptimistically(true)
-    const result = await sendMoney(email, amountCents)
+    const result = await sendMoney(email, amountCents, note.trim() || undefined)
     if ('error' in result) {
       setSentOptimistically(false)
       toast.add({ type: 'error', title: 'Transfer failed', description: result.error })
@@ -60,6 +61,14 @@ export default function SendMoneyPage() {
             onChange={(e) => setAmount(e.target.value)}
             min="0.01"
             step="0.01"
+          />
+          <Input
+            type="text"
+            placeholder="Note (optional), e.g. dinner"
+            aria-label="Note"
+            value={note}
+            maxLength={140}
+            onChange={(e) => setNote(e.target.value)}
           />
           <Button onClick={handleSubmit} className="w-full">
             Send

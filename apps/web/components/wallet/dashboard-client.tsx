@@ -16,6 +16,7 @@ type TxnJoinRow = {
   type: TransactionRow['type']
   status: TransactionRow['status']
   created_at: string
+  note: string | null
   ledger_entries: { amount_cents: number; direction: TransactionRow['direction']; account_id: string }[]
 }
 
@@ -24,11 +25,14 @@ export function DashboardClient({
   initialBalanceCents,
   initialLedgerEntryId,
   initialTransactions,
+  insights,
 }: {
   accountId: string
   initialBalanceCents: number
   initialLedgerEntryId: number
   initialTransactions: TransactionRow[]
+  /** Server-rendered weekly insights slot (see components/wallet/insights-card.tsx). */
+  insights?: React.ReactNode
 }) {
   const [balanceCents, setBalanceCents] = useState(initialBalanceCents)
   const [transactions, setTransactions] = useState(initialTransactions)
@@ -62,7 +66,7 @@ export function DashboardClient({
       try {
         const { data } = await supabase
           .from('transactions')
-          .select('id, type, status, created_at, ledger_entries!inner(amount_cents, direction, account_id)')
+          .select('id, type, status, created_at, note, ledger_entries!inner(amount_cents, direction, account_id)')
           .eq('ledger_entries.account_id', accountId)
           .order('created_at', { ascending: false })
           .limit(20)
@@ -75,6 +79,7 @@ export function DashboardClient({
             createdAt: t.created_at,
             amountCents: t.ledger_entries[0].amount_cents,
             direction: t.ledger_entries[0].direction,
+            note: t.note,
           }))
         )
       } catch {
@@ -137,6 +142,7 @@ export function DashboardClient({
   return (
     <div className="space-y-6">
       <BalanceCard balanceCents={balanceCents} />
+      {insights}
       <div>
         <h2 className="mb-2 text-lg font-medium">Recent activity</h2>
         <TransactionList transactions={transactions} />
