@@ -188,7 +188,7 @@ function Listing({
             <h3 className="font-heading text-2xl font-light tracking-tight transition-colors group-hover:text-primary sm:text-3xl">
               {title}
             </h3>
-            <p className="text-sm leading-relaxed text-muted-foreground">{body}</p>
+            <p className="text-[15px] leading-relaxed font-medium text-foreground">{body}</p>
           </div>
         ))}
       </RevealGroup>
