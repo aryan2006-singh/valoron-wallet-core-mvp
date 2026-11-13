@@ -106,7 +106,7 @@ export default async function LandingPage() {
           </div>
         </section>
 
-        <div className="bg-black/70 backdrop-blur-sm">
+        <div className="[text-shadow:0_1px_16px_rgb(0_0_0/0.9)]">
           {/* About + stats */}
           <section id="ledger" className="mx-auto w-full max-w-6xl scroll-mt-16 px-6 py-28">
             <Reveal>
