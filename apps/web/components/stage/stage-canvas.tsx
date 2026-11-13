@@ -43,102 +43,195 @@ export function StageCanvas() {
 
     async function start() {
       const THREE = await import('three')
-      const { RoundedBoxGeometry } = await import('three/examples/jsm/geometries/RoundedBoxGeometry.js')
+      const { EffectComposer } = await import('three/examples/jsm/postprocessing/EffectComposer.js')
+      const { RenderPass } = await import('three/examples/jsm/postprocessing/RenderPass.js')
+      const { UnrealBloomPass } = await import('three/examples/jsm/postprocessing/UnrealBloomPass.js')
+      const { OutputPass } = await import('three/examples/jsm/postprocessing/OutputPass.js')
       if (disposed || !mount) return
 
       let renderer: THREE_NS.WebGLRenderer
       try {
-        renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true })
+        renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' })
       } catch {
         return // no WebGL: the page stays plain black
       }
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+      const dpr = Math.min(window.devicePixelRatio, 2)
+      renderer.setPixelRatio(dpr)
       renderer.setSize(mount.clientWidth, mount.clientHeight)
-      renderer.toneMapping = THREE.ACESFilmicToneMapping
-      renderer.toneMappingExposure = 1.05
+      renderer.setClearColor(0x000000, 1)
+      // The reference look is untone-mapped: the gradient colours are the
+      // final colours.
+      renderer.toneMapping = THREE.NoToneMapping
+      renderer.shadowMap.enabled = true
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap
       mount.appendChild(renderer.domElement)
 
       const scene = new THREE.Scene()
-      const pmrem = new THREE.PMREMGenerator(renderer)
-      // A black studio with a few bright softbox strips. Reflected in
-      // polished metal this gives the fragment.im look: mostly black faces
-      // crossed by white light sweeps, and hot white bevelled edges.
-      const studio = new THREE.Scene()
-      studio.background = new THREE.Color(0x000000)
-      const boxGeo = new THREE.PlaneGeometry(1, 1)
-      const softbox = (w: number, h: number, x: number, y: number, z: number, power: number) => {
-        const mat = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide })
-        mat.color.setScalar(power)
-        const m = new THREE.Mesh(boxGeo, mat)
-        m.scale.set(w, h, 1)
-        m.position.set(x, y, z)
-        m.lookAt(0, 0, 0)
-        studio.add(m)
-      }
-      // Faint grey dome so faces never fall to pure black.
-      const dome = new THREE.Mesh(
-        new THREE.SphereGeometry(30, 32, 16),
-        new THREE.MeshBasicMaterial({ color: 0x3b4144, side: THREE.BackSide }),
-      )
-      studio.add(dome)
-      softbox(30, 12, 0, 10, 5, 5) // wide panel overhead
-      softbox(10, 20, -11, 0, 6, 3) // tall panel on the left
-      softbox(9, 9, 10, 4, -7, 4.5) // hot kicker behind right
-      softbox(18, 4, 0, -9, 8, 0.9) // soft floor bounce
-      softbox(6, 6, 9, -2, 9, 1.6) // small front-right fill
-      const envTexture = pmrem.fromScene(studio, 0.02).texture
-      boxGeo.dispose()
-      dome.geometry.dispose()
-      ;(dome.material as THREE_NS.Material).dispose()
-      scene.environment = envTexture
-      scene.environmentIntensity = 1
-
-      const camera = new THREE.PerspectiveCamera(32, mount.clientWidth / mount.clientHeight, 0.1, 100)
+      const camera = new THREE.PerspectiveCamera(33.8, mount.clientWidth / mount.clientHeight, 0.1, 100)
       camera.position.set(0, 0, 10)
 
-      // --- a long chain of chrome plates on a ring ----------------------
-      // Like fragment.im, the motion is driven by the scroll position of the
-      // WHOLE page and nothing else: no idle wobble, no lag. Scrolling walks
-      // the chain around the ring and flips every plate from face-on to
-      // edge-on and back, so each part of the page shows a different shape.
-      const COUNT = 30
-      const RADIUS = 7.2
-      // Big, chunky, square plates with generous rounded bevels.
-      const plateGeometry = new RoundedBoxGeometry(2.3, 2.3, 0.18, 6, 0.09)
-      const plateMaterial = new THREE.MeshPhysicalMaterial({
-        color: 0xffffff,
-        metalness: 1,
-        roughness: 0.07,
-        clearcoat: 1,
-        clearcoatRoughness: 0.04,
-        envMapIntensity: 1.8,
+      // --- the slab ------------------------------------------------------
+      // A rounded square slab: corner radius 12% of the side, thickness 6%,
+      // with a small rounded bevel so the edges catch a thin line of light.
+      const SIDE = 0.92
+      const half = SIDE / 2
+      const corner = SIDE * 0.12
+      const outline = new THREE.Shape()
+      outline.moveTo(-half + corner, -half)
+      outline.lineTo(half - corner, -half)
+      outline.quadraticCurveTo(half, -half, half, -half + corner)
+      outline.lineTo(half, half - corner)
+      outline.quadraticCurveTo(half, half, half - corner, half)
+      outline.lineTo(-half + corner, half)
+      outline.quadraticCurveTo(-half, half, -half, half - corner)
+      outline.lineTo(-half, -half + corner)
+      outline.quadraticCurveTo(-half, -half, -half + corner, -half)
+      const plateGeometry = new THREE.ExtrudeGeometry(outline, {
+        depth: SIDE * 0.06 - SIDE * 0.02,
+        bevelEnabled: true,
+        bevelSize: SIDE * 0.01,
+        bevelThickness: SIDE * 0.01,
+        bevelSegments: 4,
+        curveSegments: 24,
       })
+      plateGeometry.center()
+
+      // --- the material --------------------------------------------------
+      // Not chrome. The face colour comes from how far each point is from
+      // the camera (near: almost white, middle: blue-grey, far: near
+      // black), so a tilted slab carries a soft gradient across its face
+      // and a stack fades from pale to dark with depth. On top of that sit
+      // a broad, soft specular and a faint "reflection" matcap, which is
+      // what draws the thin bright line along every bevelled edge.
+      const matcapCanvas = document.createElement('canvas')
+      matcapCanvas.width = matcapCanvas.height = 256
+      const mc = matcapCanvas.getContext('2d')!
+      mc.fillStyle = '#000'
+      mc.fillRect(0, 0, 256, 256)
+      // broad soft highlight, upper left
+      let g = mc.createRadialGradient(84, 70, 0, 84, 70, 110)
+      g.addColorStop(0, 'rgba(255,255,255,0.16)')
+      g.addColorStop(1, 'rgba(255,255,255,0)')
+      mc.fillStyle = g
+      mc.fillRect(0, 0, 256, 256)
+      // bright thin ring at the rim: normals pointing sideways (the bevels)
+      g = mc.createRadialGradient(128, 128, 108, 128, 128, 128)
+      g.addColorStop(0, 'rgba(255,255,255,0)')
+      g.addColorStop(0.75, 'rgba(255,255,255,0.9)')
+      g.addColorStop(1, 'rgba(255,255,255,1)')
+      mc.fillStyle = g
+      mc.fillRect(0, 0, 256, 256)
+      const matcap = new THREE.CanvasTexture(matcapCanvas)
+      matcap.colorSpace = THREE.SRGBColorSpace
+
+      const uniforms = {
+        uNear: { value: 7 },
+        uFar: { value: 16 },
+        uDim: { value: 1 },
+        uSide: { value: SIDE },
+        uMatcap: { value: matcap },
+        uC0: { value: new THREE.Color().setRGB(0.929, 0.929, 0.929, THREE.SRGBColorSpace) },
+        uC1: { value: new THREE.Color().setRGB(0.525, 0.574, 0.604, THREE.SRGBColorSpace) },
+        uC2: { value: new THREE.Color().setRGB(0.11, 0.148, 0.152, THREE.SRGBColorSpace) },
+      }
+      const plateMaterial = new THREE.MeshPhongMaterial({
+        color: 0xffffff,
+        specular: new THREE.Color().setRGB(0.178, 0.208, 0.217, THREE.SRGBColorSpace),
+        shininess: 5,
+      })
+      plateMaterial.onBeforeCompile = (shader) => {
+        Object.assign(shader.uniforms, uniforms)
+        // Per-slab glow (hover / tap) brightens the rim line and the face.
+        shader.vertexShader = shader.vertexShader
+          .replace('#include <common>', '#include <common>\nattribute float aGlow;\nvarying float vGlow;\nvarying float vCenterDepth;')
+          .replace(
+            '#include <begin_vertex>',
+            '#include <begin_vertex>\nvGlow = aGlow;\nvCenterDepth = -(modelViewMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).z;',
+          )
+        shader.fragmentShader = shader.fragmentShader
+          .replace(
+            '#include <common>',
+            `#include <common>
+            varying float vGlow; varying float vCenterDepth;
+            uniform float uNear; uniform float uFar; uniform float uDim; uniform float uSide;
+            uniform sampler2D uMatcap; uniform vec3 uC0; uniform vec3 uC1; uniform vec3 uC2;
+            // Gradient across each slab's own depth (like the reference),
+            // nudged by where the slab sits along the chain.
+            vec3 depthGradient(float d) {
+              float local = (d - vCenterDepth) / uSide;
+              float chain = (vCenterDepth - uNear) / (uFar - uNear) - 0.5;
+              float t = clamp(1.0 + local * 2.6 + chain * 1.0, 0.0, 1.0);
+              const float mid = 0.448;
+              return t < mid ? mix(uC0, uC1, t / mid) : mix(uC1, uC2, (t - mid) / (1.0 - mid));
+            }`,
+          )
+          .replace(
+            '#include <color_fragment>',
+            `#include <color_fragment>
+            vec3 grad = depthGradient(vViewPosition.z) * uDim;
+            // Diffuse stays white: Phong's diffuse result is used below
+            // only as a light/shadow factor over the gradient.
+            diffuseColor.rgb = vec3(1.0);`,
+          )
+          .replace(
+            '#include <opaque_fragment>',
+            `// Layer stack, bottom to top: depth gradient, soft reflection
+            // matcap (screen), then lighting at 60% shading the result,
+            // plus the broad specular.
+            vec2 mcUv = normal.xy * 0.495 + 0.5;
+            vec3 mcCol = texture2D(uMatcap, mcUv).rgb * (0.33 + vGlow * 0.45) * uDim;
+            vec3 base = 1.0 - (1.0 - grad * (1.0 + vGlow * 0.25)) * (1.0 - mcCol);
+            vec3 shade = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse;
+            outgoingLight = base * mix(vec3(1.0), shade, 0.6) + reflectedLight.directSpecular * 0.6 * uDim;
+            #include <opaque_fragment>`,
+          )
+      }
+
+      // --- a long chain of slabs on a ring -------------------------------
+      const COUNT = 30
+      const RADIUS = 4.6
       const plateGroup = new THREE.Group()
       const plates = new THREE.InstancedMesh(plateGeometry, plateMaterial, COUNT)
+      plates.castShadow = true
+      plates.receiveShadow = true
       plateGroup.add(plates)
       scene.add(plateGroup)
 
-      // Silver at one end of the chain fading to graphite at the other.
-      const bright = new THREE.Color(0xffffff)
-      const dark = new THREE.Color(0x9aa2a6)
-      const shade = new THREE.Color()
-      for (let i = 0; i < COUNT; i++) {
-        shade.copy(bright).lerp(dark, Math.pow(i / (COUNT - 1), 0.8))
-        plates.setColorAt(i, shade)
-      }
-      if (plates.instanceColor) plates.instanceColor.needsUpdate = true
-
       const dummy = new THREE.Object3D()
       const outward = new THREE.Vector3()
+      const groupWorld = new THREE.Vector3()
 
-      // --- light: soft white key from the upper left, hard rim behind -----
-      const key = new THREE.DirectionalLight(0xffffff, 0.6)
-      key.position.set(-5, 5, 5)
+      // --- light ----------------------------------------------------------
+      // A grey sky fill and one white key from close to the camera, which
+      // casts soft shadows from each slab onto the ones behind it.
+      scene.add(new THREE.HemisphereLight(0xd3d3d3, 0x2a2e31, 1.3))
+      const key = new THREE.DirectionalLight(0xffffff, 2.2)
+      key.position.set(3.5, 4.5, 12)
+      key.castShadow = true
+      key.shadow.mapSize.set(1024, 1024)
+      key.shadow.radius = 6
+      key.shadow.bias = -0.0004
+      key.shadow.normalBias = 0.02
+      const sc = key.shadow.camera
+      sc.left = sc.bottom = -7
+      sc.right = sc.top = 7
+      sc.near = 1
+      sc.far = 30
       scene.add(key)
-      const rim = new THREE.DirectionalLight(0xffffff, 2.5)
-      rim.position.set(4, 6, -8)
-      scene.add(rim)
-      scene.add(new THREE.AmbientLight(0xffffff, 0.05))
+      scene.add(key.target)
+
+      // --- post: soft glow on the bright parts -----------------------------
+      const target = new THREE.WebGLRenderTarget(mount.clientWidth * dpr, mount.clientHeight * dpr, {
+        samples: 4,
+        type: THREE.HalfFloatType,
+      })
+      const composer = new EffectComposer(renderer, target)
+      composer.setPixelRatio(dpr)
+      composer.setSize(mount.clientWidth, mount.clientHeight)
+      composer.addPass(new RenderPass(scene, camera))
+      const bloom = new UnrealBloomPass(new THREE.Vector2(mount.clientWidth, mount.clientHeight), 0.28, 0.35, 0.86)
+      composer.addPass(bloom)
+      composer.addPass(new OutputPass())
 
       // --- state ------------------------------------------------------------
       const cur: Pose = { ...poseRef.current }
@@ -146,9 +239,54 @@ export function StageCanvas() {
       // 0 at the top of the page, 1 at the bottom.
       let progress = 0
       let shown = 0
+      // --- per-slab interaction state ----------------------------------
+      // The canvas sits behind the page with pointer-events: none, so we
+      // listen on window and work in screen pixels ourselves.
+      const HOVER_RADIUS = 150 // px: how close the cursor must come
+      const TAP_RADIUS = 170 // px: how close a tap must land
+      const TAP_MS = 900
+      const pointerPx = { x: -9999, y: -9999, active: false }
+      const hover = new Float32Array(COUNT)
+      const glow = new Float32Array(COUNT)
+      const tapAt = new Float64Array(COUNT)
+      const screenX = new Float32Array(COUNT)
+      const screenY = new Float32Array(COUNT)
+      const glowAttr = new THREE.InstancedBufferAttribute(glow, 1)
+      plateGeometry.setAttribute('aGlow', glowAttr)
+      const screen = new THREE.Vector3()
+      const worldPos = new THREE.Vector3()
+      const liftDir = new THREE.Vector3()
+
+      const toLocal = (e: PointerEvent) => {
+        const rect = mount!.getBoundingClientRect()
+        pointerPx.x = e.clientX - rect.left
+        pointerPx.y = e.clientY - rect.top
+      }
       const onMove = (e: PointerEvent) => {
         pointer.tx = (e.clientX / window.innerWidth) * 2 - 1
         pointer.ty = (e.clientY / window.innerHeight) * 2 - 1
+        toLocal(e)
+        pointerPx.active = true
+      }
+      const onLeave = () => {
+        pointerPx.active = false
+      }
+      const onDown = (e: PointerEvent) => {
+        toLocal(e)
+        if (e.pointerType !== 'mouse') pointerPx.active = true
+        // Never react to clicks on page controls.
+        const el = e.target as Element | null
+        if (el?.closest('a, button, input, textarea, select, label, summary, [role="button"], [contenteditable]')) return
+        let best = -1
+        let bestD = TAP_RADIUS
+        for (let i = 0; i < COUNT; i++) {
+          const d = Math.hypot(pointerPx.x - screenX[i], pointerPx.y - screenY[i])
+          if (d < bestD) {
+            bestD = d
+            best = i
+          }
+        }
+        if (best >= 0 && tapAt[best] === 0) tapAt[best] = performance.now()
       }
       const onScroll = () => {
         const max = document.documentElement.scrollHeight - window.innerHeight
@@ -164,8 +302,11 @@ export function StageCanvas() {
         camera.aspect = mount.clientWidth / mount.clientHeight
         camera.updateProjectionMatrix()
         renderer.setSize(mount.clientWidth, mount.clientHeight)
+        composer.setSize(mount.clientWidth, mount.clientHeight)
       }
       window.addEventListener('pointermove', onMove, { passive: true })
+      window.addEventListener('pointerdown', onDown, { passive: true })
+      document.documentElement.addEventListener('pointerleave', onLeave)
       window.addEventListener('scroll', onScroll, { passive: true })
       window.addEventListener('resize', onResize)
 
@@ -197,13 +338,12 @@ export function StageCanvas() {
         plateGroup.visible = cur.plates > 0.02
         // Dim by darkening rather than fading: translucent plates would show
         // each other through themselves.
-        plateMaterial.color.setScalar(cur.plates)
-        plateMaterial.envMapIntensity = 1.8 * cur.plates
+        uniforms.uDim.value = cur.plates
 
         // The ring hangs over the top of the viewport and tips toward the
         // camera as you scroll, so the visible arc changes from a chain of
         // faces to a fan of edges and back.
-        plateGroup.position.set(narrow ? 0 : 1.2, 4.5 + cur.lift, -3.6)
+        plateGroup.position.set(narrow ? 0 : 2.2, 2.3 + cur.lift, -1.5)
         plateGroup.scale.setScalar(narrow ? 0.62 : 1)
         plateGroup.rotation.set(
           0.58 + Math.sin(shown * Math.PI * 2) * 0.06 + pointer.y * 0.04,
@@ -215,6 +355,9 @@ export function StageCanvas() {
         // crawl, and every plate keeps turning over.
         const travel = shown * Math.PI * 2 * 0.75 + drift * 0.06
         const flip = shown * Math.PI * 1.6 + drift * 0.22
+        plateGroup.updateMatrixWorld()
+        const w = mount!.clientWidth
+        const h = mount!.clientHeight
         for (let i = 0; i < COUNT; i++) {
           const a = i * STEP + travel
           outward.set(Math.cos(a), 0, Math.sin(a))
@@ -223,12 +366,63 @@ export function StageCanvas() {
           dummy.lookAt(dummy.position.x * 2, 0, dummy.position.z * 2)
           dummy.rotateY(-0.45 + Math.sin(flip - i * 0.12) * 0.95)
           dummy.rotateX(0.18)
+
+          // --- per-slab interaction ------------------------------------
+          // Where this slab sits on screen, and how close the cursor is.
+          screen.copy(dummy.position).applyMatrix4(plateGroup.matrixWorld)
+          worldPos.copy(screen)
+          screen.project(camera)
+          const sx = (screen.x * 0.5 + 0.5) * w
+          const sy = (-screen.y * 0.5 + 0.5) * h
+          screenX[i] = sx
+          screenY[i] = sy
+          const dx = pointerPx.x - sx
+          const dy = pointerPx.y - sy
+          const near = pointerPx.active ? Math.max(0, 1 - Math.hypot(dx, dy) / HOVER_RADIUS) : 0
+          hover[i] = lerp(hover[i], near * near * (3 - 2 * near), 0.08)
+          const hv = hover[i]
+
+          // Tap: one quick turn with a soft rim pulse, then settle.
+          let spin = 0
+          let pulse = 0
+          if (tapAt[i] > 0) {
+            const p = (now - tapAt[i]) / TAP_MS
+            if (p >= 1) tapAt[i] = 0
+            else {
+              spin = (1 - Math.pow(1 - p, 3)) * Math.PI * 2
+              pulse = Math.sin(p * Math.PI)
+            }
+          }
+
+          if (hv > 0.001 || spin > 0) {
+            // Lift toward the camera...
+            liftDir.copy(camera.position).sub(worldPos).normalize().multiplyScalar(hv * 0.45)
+            worldPos.add(liftDir)
+            plateGroup.worldToLocal(worldPos)
+            dummy.position.copy(worldPos)
+            // ...and lean toward the cursor.
+            const len = Math.hypot(dx, dy) || 1
+            dummy.rotateY((dx / len) * hv * 0.55)
+            dummy.rotateX((dy / len) * hv * 0.55)
+            if (spin > 0) dummy.rotateY(spin)
+          }
+          glow[i] = hv * 0.9 + pulse * 1.6
+
           dummy.updateMatrix()
           plates.setMatrixAt(i, dummy.matrix)
         }
         plates.instanceMatrix.needsUpdate = true
+        glowAttr.needsUpdate = true
 
-        renderer.render(scene, camera)
+        // Depth gradient spans the ring: nearest slab pale, farthest dark.
+        plateGroup.getWorldPosition(groupWorld)
+        const centre = camera.position.distanceTo(groupWorld)
+        const r = RADIUS * plateGroup.scale.x
+        uniforms.uNear.value = centre - r
+        uniforms.uFar.value = centre + r
+        key.target.position.copy(groupWorld)
+
+        composer.render()
       }
 
       let visible = true
@@ -248,14 +442,18 @@ export function StageCanvas() {
         cancelAnimationFrame(frame)
         heightWatcher.disconnect()
         window.removeEventListener('pointermove', onMove)
+        window.removeEventListener('pointerdown', onDown)
+        document.documentElement.removeEventListener('pointerleave', onLeave)
         window.removeEventListener('scroll', onScroll)
         window.removeEventListener('resize', onResize)
         document.removeEventListener('visibilitychange', onVisibility)
         renderer.domElement.remove()
         plateGeometry.dispose()
         plateMaterial.dispose()
-        envTexture.dispose()
-        pmrem.dispose()
+        matcap.dispose()
+        bloom.dispose()
+        composer.dispose()
+        target.dispose()
         renderer.dispose()
       }
     }
