@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Wallet } from 'lucide-react'
 import { signUpSchema, type SignUpInput } from '@/lib/validation/auth'
 import { signUpAction } from '../actions'
 import { Button } from '@/components/ui/button'
@@ -40,12 +39,7 @@ export default function SignUpPage() {
   return (
     <div className="space-y-8">
       <div className="space-y-2">
-        {/* Matches the login screen — the layout's brand panel is hidden
-            below the lg breakpoint. */}
-        <span className="mb-6 flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground lg:hidden">
-          <Wallet className="size-5" />
-        </span>
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">Create your account</h1>
+        <h1 className="font-heading font-light text-4xl tracking-tight">Create your account</h1>
         <p className="text-sm text-muted-foreground">
           Open a Valoron wallet in under a minute. You will set up two-factor authentication next.
         </p>

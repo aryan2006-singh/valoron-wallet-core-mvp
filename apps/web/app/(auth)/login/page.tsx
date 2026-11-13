@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Wallet } from 'lucide-react'
 import { logInAction } from '../actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -39,12 +38,7 @@ export default function LoginPage() {
   return (
     <div className="space-y-8">
       <div className="space-y-2">
-        {/* The auth layout's brand panel is desktop-only, so the logo
-            repeats here for small screens. */}
-        <span className="mb-6 flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground lg:hidden">
-          <Wallet className="size-5" />
-        </span>
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">Welcome back</h1>
+        <h1 className="font-heading font-light text-4xl tracking-tight">Welcome back</h1>
         <p className="text-sm text-muted-foreground">Log in to your Valoron wallet.</p>
       </div>
 
