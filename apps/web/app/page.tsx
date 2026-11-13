@@ -26,6 +26,10 @@ const FEATURES = [
     body: 'Move money out via Stripe payouts. If a payout cannot be initiated, the ledger entry reverses itself automatically and your balance is restored.',
   },
   {
+    title: 'Escrow',
+    body: 'Lock funds for someone and release them when you are satisfied. Held money leaves your spendable balance at once, and a release or refund can only ever happen once.',
+  },
+  {
     title: 'Live balances',
     body: 'Balances stream over websockets and update the moment the ledger changes, ordered so a slow response can never overwrite fresher data.',
   },
