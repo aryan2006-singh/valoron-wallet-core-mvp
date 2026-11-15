@@ -26,10 +26,18 @@ function poseFor(path: string): Pose {
   return { plates: 0.22, lift: 1.4 }
 }
 
-export function StageCanvas() {
+export function StageCanvas({ balance = null }: { balance?: string | null }) {
   const mountRef = useRef<HTMLDivElement>(null)
   const pathname = usePathname()
   const poseRef = useRef<Pose>(poseFor(pathname))
+  const balanceRef = useRef<string | null>(balance)
+  const redrawRef = useRef<(() => void) | null>(null)
+
+  // New balance (after a deposit/send): repaint the card texture only.
+  useEffect(() => {
+    balanceRef.current = balance
+    redrawRef.current?.()
+  }, [balance])
 
   useEffect(() => {
     poseRef.current = poseFor(pathname)
@@ -206,40 +214,65 @@ export function StageCanvas() {
         getComputedStyle(document.documentElement).getPropertyValue(n).trim()
       const sans = `${cssVar('--font-inter-tight') || 'ui-sans-serif'}, system-ui, sans-serif`
       const mono = `${cssVar('--font-geist-mono') || 'ui-monospace'}, monospace`
-      await document.fonts.ready
-      if (disposed) return
       const labelCanvas = document.createElement('canvas')
       labelCanvas.width = labelCanvas.height = 1024
       const lc = labelCanvas.getContext('2d')!
-      lc.scale(2, 2)
-      const text = (t: string, x: number, y: number, font: string, alpha: number, spacing = 0) => {
-        lc.globalAlpha = alpha
-        lc.font = font
-        lc.letterSpacing = `${spacing}px`
-        lc.fillText(t, x, y)
+      const drawLabels = () => {
+        lc.setTransform(1, 0, 0, 1, 0, 0)
+        lc.clearRect(0, 0, 1024, 1024)
+        lc.scale(2, 2)
+        const text = (t: string, x: number, y: number, font: string, alpha: number, spacing = 0) => {
+          lc.globalAlpha = alpha
+          lc.font = font
+          lc.letterSpacing = `${spacing}px`
+          lc.fillText(t, x, y)
+        }
+        lc.fillStyle = '#eef0f2'
+        const bal = balanceRef.current
+        text('VALORON', 40, 78, `500 24px ${mono}`, 0.9, 4)
+        if (bal) {
+          text('VALORON BALANCE', 40, 190, `500 16px ${mono}`, 0.6, 3)
+          text(bal, 36, 262, `300 ${bal.length > 10 ? 56 : 72}px ${sans}`, 0.95, -2)
+        } else {
+          text('Available balance', 40, 190, `400 22px ${sans}`, 0.6)
+          text('$2,480.00', 36, 262, `300 72px ${sans}`, 0.95, -2)
+        }
+        lc.globalAlpha = 0.25
+        lc.fillRect(40, 300, 432, 1)
+        lc.globalAlpha = 0.8
+        lc.strokeStyle = '#eef0f2'
+        lc.lineWidth = 2
+        lc.beginPath()
+        lc.moveTo(42, 336)
+        lc.lineTo(49, 343)
+        lc.lineTo(62, 328)
+        lc.stroke()
+        text('Reconstructed from 1,204 ledger entries', 74, 343, `400 18px ${sans}`, 0.7)
+        text('ACCOUNT HOLDER', 40, 418, `500 13px ${mono}`, 0.45, 2)
+        text('A. SINGH', 40, 448, `500 22px ${sans}`, 0.9)
+        text('MEMBER SINCE', 290, 418, `500 13px ${mono}`, 0.45, 2)
+        text('2026', 290, 448, `500 22px ${sans}`, 0.9)
       }
-      lc.fillStyle = '#eef0f2'
-      text('VALORON', 40, 78, `500 24px ${mono}`, 0.9, 4)
-      text('Available balance', 40, 190, `400 22px ${sans}`, 0.6)
-      text('$2,480.00', 36, 262, `300 72px ${sans}`, 0.95, -2)
-      lc.globalAlpha = 0.25
-      lc.fillRect(40, 300, 432, 1)
-      lc.globalAlpha = 0.8
-      lc.strokeStyle = '#eef0f2'
-      lc.lineWidth = 2
-      lc.beginPath()
-      lc.moveTo(42, 336)
-      lc.lineTo(49, 343)
-      lc.lineTo(62, 328)
-      lc.stroke()
-      text('Reconstructed from 1,204 ledger entries', 74, 343, `400 18px ${sans}`, 0.7)
-      text('ACCOUNT HOLDER', 40, 418, `500 13px ${mono}`, 0.45, 2)
-      text('A. SINGH', 40, 448, `500 22px ${sans}`, 0.9)
-      text('MEMBER SINCE', 290, 418, `500 13px ${mono}`, 0.45, 2)
-      text('2026', 290, 448, `500 22px ${sans}`, 0.9)
+      // Canvas text silently falls back to nothing/a default face until the
+      // web fonts are actually loaded (next/font only loads a face once the
+      // DOM uses it), so load every face we draw with before painting.
+      await Promise.all(
+        [`300 72px ${sans}`, `400 22px ${sans}`, `500 22px ${sans}`, `500 24px ${mono}`].map((f) =>
+          document.fonts.load(f, 'VALORON 0123456789$').catch(() => []),
+        ),
+      )
+      await document.fonts.ready
+      if (disposed) return
+      drawLabels()
       const labelTexture = new THREE.CanvasTexture(labelCanvas)
       labelTexture.colorSpace = THREE.SRGBColorSpace
       labelTexture.anisotropy = renderer.capabilities.getMaxAnisotropy()
+      const redraw = () => {
+        drawLabels()
+        labelTexture.needsUpdate = true
+      }
+      redrawRef.current = redraw
+      document.fonts.addEventListener('loadingdone', redraw)
       const labelGeometry = new THREE.PlaneGeometry(SIDE * 0.9, SIDE * 0.9)
       labelGeometry.translate(0, 0, SIDE * 0.03 + 0.002)
       const labelMaterial = new THREE.MeshBasicMaterial({
@@ -503,6 +536,8 @@ export function StageCanvas() {
 
       cleanup = () => {
         cancelAnimationFrame(frame)
+        redrawRef.current = null
+        document.fonts.removeEventListener('loadingdone', redraw)
         heightWatcher.disconnect()
         window.removeEventListener('pointermove', onMove)
         window.removeEventListener('pointerdown', onDown)
