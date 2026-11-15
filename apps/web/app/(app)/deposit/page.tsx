@@ -70,6 +70,9 @@ function DepositConfirmForm() {
   const elements = useElements()
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  // Stays false until the card number, expiry and CVC are all filled in, so
+  // Confirm can't be pressed on an empty or half-filled form.
+  const [isComplete, setIsComplete] = useState(false)
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -89,9 +92,14 @@ function DepositConfirmForm() {
 
   return (
     <form onSubmit={handleSubmit} className="mx-auto w-full max-w-sm space-y-4">
-      <PaymentElement />
+      {/* Card first, shown as an open form: the default accordion layout hid
+          the card fields behind a "Card" row that users missed. */}
+      <PaymentElement
+        options={{ layout: 'tabs', paymentMethodOrder: ['card'] }}
+        onChange={(event) => setIsComplete(event.complete)}
+      />
       {error && <p className="text-sm text-destructive">{error}</p>}
-      <Button type="submit" className="w-full" disabled={!stripe || isSubmitting}>
+      <Button type="submit" className="w-full" disabled={!stripe || !isComplete || isSubmitting}>
         {isSubmitting ? 'Processing…' : 'Confirm deposit'}
       </Button>
     </form>
